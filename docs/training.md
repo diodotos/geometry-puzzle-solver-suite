@@ -196,6 +196,9 @@ All backends share one flow (ADR 0009): a cost/time **estimate**, the exact **pl
 `yes` (or `--yes`). Cloud launches also need `--budget-usd` and are refused when the
 estimate exceeds it. Each VM shuts itself down after `--max-hours` and is created so that
 shutdown deletes it; artefacts (checkpoint, log, ONNX + manifest) go to `--bucket`.
+Training itself is stopped (`timeout --signal=INT`) 5-15 minutes before that deadline, so
+the last checkpoint is still exported and uploaded and the run can be resumed. The trainer
+uses CUDA automatically when PyTorch sees a GPU.
 
 Prerequisites you set up yourself (nothing here touches credentials):
 

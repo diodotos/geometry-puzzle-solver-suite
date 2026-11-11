@@ -28,7 +28,9 @@ never end up in the repository or in an agent's context.
   (AWS `InstanceInitiatedShutdownBehavior=terminate`; GCP `--max-run-duration` +
   `--instance-termination-action=DELETE`, enforced by the provider).
 - Artefacts (checkpoint, log, exported ONNX + manifest) are copied to a user-given bucket
-  (`s3://` / `gs://`) before shutdown. Training is resumable (`--resume`).
+  (`s3://` / `gs://`) before shutdown. Training is stopped 5-15 minutes before the
+  `max_hours` deadline so that this export + upload always runs; the run is resumable
+  (`--resume`). The bucket path is shell-quoted in the bootstrap script.
 
 ## Consequences
 
