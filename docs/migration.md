@@ -9,6 +9,12 @@ AI agent, and in proving that the migration preserved behaviour.
 A* using orientation, permutation, "dual" (max of both) and perfect heuristics. Its history
 is preserved in this repository's git log.
 
+Two generated files from the original repository, `perfectLookup.txt` (55 MB) and
+`heuristic_evaluation.txt` (77 MB), are no longer in the tree (they remain in git history).
+`CubeSolver` rebuilds `perfectLookup.txt` the first time `--solver astarperf` runs (about a
+minute), and `heuristic_evaluation.txt` is the output of its `heuristic` mode. Pattern
+databases are treated as build artefacts throughout the suite.
+
 ## Method
 
 1. **Freeze the old behaviour as data, not code.** Before writing any Rust, build an
