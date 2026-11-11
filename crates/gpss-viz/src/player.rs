@@ -129,9 +129,22 @@ impl Player {
 
     /// Animations still needed to reach the target (not counting the one in progress).
     pub fn pending(&self) -> usize {
-        let p = self.common_prefix();
-        let remaining = (self.shown.len() - p) + (self.timeline.len() - p);
-        remaining - usize::from(self.anim.is_some())
+        // Count from the shown sequence as it will be once the current animation ends: an
+        // undo may already have removed that move from the timeline.
+        let mut shown = self.shown.clone();
+        match self.anim {
+            Some(a) if a.reverting => {
+                shown.pop();
+            }
+            Some(a) => shown.push(a.mv),
+            None => {}
+        }
+        let p = shown
+            .iter()
+            .zip(&self.timeline)
+            .take_while(|(a, b)| **a == b.mv)
+            .count();
+        (shown.len() - p) + (self.timeline.len() - p)
     }
 
     /// Jump to `state` with nothing queued or animating, and make it the new baseline.
@@ -348,6 +361,23 @@ mod tests {
         assert_eq!(p.pending(), MAX_PENDING - 1);
         p.push(r2, Source::User).unwrap();
         assert_eq!(p.push(r2, Source::User), Err(Rejected::QueueFull));
+    }
+
+    #[test]
+    fn undoing_the_animating_move_queues_its_reversal() {
+        let mut p = cube3();
+        let r = mv(&p, "R");
+        p.push(r, Source::User).unwrap();
+        p.tick(0.01);
+        assert_eq!(p.pending(), 0);
+        p.pop();
+        // R finishes, then is animated back.
+        assert_eq!(p.pending(), 1);
+        assert!(!p.is_idle());
+        p.push(mv(&p, "U"), Source::User).unwrap();
+        assert_eq!(p.pending(), 2);
+        p.finish();
+        assert_eq!(p.shown(), &[mv(&p, "U")]);
     }
 
     proptest! {
