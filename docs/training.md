@@ -299,7 +299,7 @@ in between). The mean Bellman target rose quickly to ~9.5 by update 90, then pla
 The network already guides BWAS to optimal solutions on short scrambles, and the solutions it
 finds for random states are near-optimal in length (typical optimal distance 17-18). It is
 still far from the paper's 100% solve rate: random states need search budgets in the
-millions of nodes (CPU inference here manages ~1,300 expansions/s), and the target plateau
+millions of nodes (CPU inference here manages ~1,100-1,200 expansions/s), and the target plateau
 suggests the network needs many more updates, a sync rule tuned for this preset, or both.
 
 ## Deviations from the paper
