@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import torch
 
@@ -74,3 +75,46 @@ def test_forced_sync_after_stall(tmp_path):
     ck = torch.load(tmp_path / "run" / "checkpoint.pt", weights_only=True)
     assert ck["state"]["syncs"] == 2 and ck["state"]["last_sync_update"] == 4
     assert [r["forced_sync"] for r in ck["state"]["history"]] == [False, True, False, True, False]
+
+
+def test_fresh_sync_metric_and_held_out_loss(tmp_path):
+    cfg = DaviConfig(run_dir=str(tmp_path / "run"), updates=2, states_per_update=16, iters_per_update=2,
+                     batch_size=8, hidden1=16, hidden2=8, blocks=1, loss_threshold=1e9, sync_metric="fresh")
+    train(cfg, source=FakeSource(), log=lambda s: None)
+    hist = torch.load(tmp_path / "run" / "checkpoint.pt", weights_only=True)["state"]["history"]
+    assert all(r["synced"] and not r["forced_sync"] and r["fresh_loss"] >= 0 for r in hist)
+    with pytest.raises(ValueError, match="sync_metric"):
+        train(DaviConfig(run_dir=str(tmp_path / "bad"), sync_metric="val"), source=FakeSource(), log=lambda s: None)
+
+
+def test_init_from_copies_weights_but_starts_fresh(tmp_path):
+    small = dict(states_per_update=16, iters_per_update=2, batch_size=8, hidden1=16, hidden2=8, blocks=1)
+    train(DaviConfig(run_dir=str(tmp_path / "a"), updates=3, loss_threshold=1e9, **small),
+          source=FakeSource(), log=lambda s: None)
+    src = torch.load(tmp_path / "a" / "checkpoint.pt", weights_only=True)
+    logs = []
+    cfg = DaviConfig(run_dir=str(tmp_path / "b"), updates=0, lr=1e-4,
+                     init_from=str(tmp_path / "a" / "checkpoint.pt"), **small)
+    train(cfg, source=FakeSource(), log=logs.append)
+    assert any("warm start" in line and "update 3" in line for line in logs)
+    cfg.updates = 1
+    train(cfg, source=FakeSource(), log=lambda s: None)
+    ck = torch.load(tmp_path / "b" / "checkpoint.pt", weights_only=True)
+    assert ck["state"]["update"] == 1 and ck["optimizer"]["param_groups"][0]["initial_lr"] == 1e-4
+    assert ck["target"] is not None and src["target"] is not None
+    assert ck["state"]["sample_offset"] == 3  # batches continue after the source run's 3
+    with pytest.raises(ValueError, match="architecture"):
+        train(DaviConfig(run_dir=str(tmp_path / "c"), updates=1, init_from=cfg.init_from,
+                         **{**small, "hidden1": 32}), source=FakeSource(), log=lambda s: None)
+
+
+def test_depth_profile(tmp_path):
+    from gpss_train.profile import depth_profile, render
+
+    cfg = DaviConfig(run_dir=str(tmp_path / "run"), updates=2, states_per_update=16, iters_per_update=2,
+                     batch_size=8, hidden1=16, hidden2=8, blocks=1, loss_threshold=1e9)
+    train(cfg, source=FakeSource(), log=lambda s: None)
+    prof = depth_profile(tmp_path / "run" / "checkpoint.pt", states=12, source=FakeSource())
+    assert prof["update"] == 2 and sum(r["n"] for r in prof["depths"]) == 12
+    assert [r["depth"] for r in prof["depths"]] == list(range(12))
+    assert "| scramble depth |" in render(prof)

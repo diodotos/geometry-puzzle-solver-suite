@@ -93,9 +93,11 @@ DAVI as in [Ago19]:
   frozen target network `J'` (zero before the first sync); negative `J'` outputs are
   clamped to 0;
 - `iters_per_update` Adam steps of `batch_size` on MSE;
-- if the update's mean loss is below `loss_threshold` (0.05, as in the paper), `J' <- J`;
+- if the update's loss is below `loss_threshold` (0.05, as in the paper), `J' <- J`;
   as a fallback, also after `max_updates_per_sync` (10) updates without a sync (logged as
-  `forced_sync`).
+  `forced_sync`). `sync_metric` picks the loss: `train` (mean training loss, the default)
+  or `fresh` (the network's MSE on the first `fresh_states` of this update's new states,
+  measured before training on them; logged every update as `fresh_loss`).
 
 Distances propagate one move per sync, so the target maximum `y_max` in the log climbs by
 about one per sync until it reaches the puzzle's diameter (11 for the 2x2x2 in the
@@ -113,6 +115,8 @@ Main options (all have defaults; `--help` lists them):
 | `--min-scramble` / `--max-scramble` | 1 / 14 (cube2) | scramble depth range |
 | `--loss-threshold` | 0.05 | target-network sync threshold |
 | `--max-updates-per-sync` | 10 | force a sync after this many updates without one (0 = never) |
+| `--sync-metric` / `--fresh-states` | `train` / 100000 | loss used by the sync rule; held-out states per update |
+| `--init-from` | none | warm-start a new run from a checkpoint (weights only; local path, or `gs://` / `s3://` on cloud) |
 | `--hidden1` `--hidden2` `--blocks` | 512 256 3 | network size |
 | `--lr` `--lr-decay` | 1e-3, 0.9999993 | Adam LR, per-step exponential decay |
 | `--threads` | all | torch intra-op threads |
@@ -302,6 +306,40 @@ finds for random states are near-optimal in length (typical optimal distance 17-
 still far from the paper's 100% solve rate: random states need search budgets in the
 millions of nodes (CPU inference on that VM managed ~1,100-1,200 expansions/s), and the target plateau
 suggests the network needs many more updates, a sync rule tuned for this preset, or both.
+
+### Tuning after the pilot (no-cost diagnosis on the dev VM)
+
+`python -m gpss_train profile --checkpoint ck.pt` prints, per scramble depth, the mean
+prediction `J`, the mean Bellman target `y` from the target network, and the held-out MSE.
+Cloud runs write it to `profile.md` / `profile.json` next to the weights. On the pilot's
+final checkpoint (30,000 fresh states):
+
+| scramble depth | 1 | 5 | 10 | 15 | 20 | 25 | 30 |
+|---|---|---|---|---|---|---|---|
+| mean `J` | 1.12 | 4.73 | 9.33 | 11.17 | 11.74 | 11.96 | 12.02 |
+| mean `y - J` | -0.12 | -0.41 | 0.00 | +0.05 | +0.08 | +0.06 | +0.08 |
+
+Random-move scrambles of 20+ moves are typically 17-18 moves from solved, so the network
+saturates at ~12 and is almost self-consistent there: each sync can add only ~0.08 at depth
+20+. Held-out probes from the same checkpoint (fixed target network; 300,000 training states,
+20,000 held-out):
+
+- The logged loss is optimistic: 0.127 at the last update, but 0.199 on fresh states. The
+  pilot trained 2.5 epochs per update (250 steps x 10,000 on 1 M states), and the 15 M
+  parameter network memorises: 150 steps over 300,000 states drove the training loss from
+  0.14 to 0.06 while the held-out loss rose (lr 1e-3).
+- Learning rate is not the bottleneck: one epoch at lr 1e-3, 3e-4, or 1e-4 reaches a
+  held-out MSE of 0.174, 0.169, or 0.171.
+- Waiting longer between syncs did not help: within each 10-update window of the pilot the
+  loss fell by at most ~0.01 (e.g. 0.142 to 0.139).
+
+The plateau fits the known downward bias of `min` over noisy estimates: with a held-out
+RMSE of ~0.4 over 18 children, `min_a J'(child)` picks noise as well as the true best move.
+The `cube3` preset therefore now uses one epoch per update (`iters_per_update=100`, as in
+the reference code), `sync_metric=fresh`, and a forced sync every 3 updates, which syncs
+about four times as often per hour. The next ~$5 check warm-starts from the pilot
+(`--init-from`) and passes if the depth-20+ `J` rises clearly above 12; if it stays flat,
+more sync frequency is not the fix and the bias itself needs attention.
 
 ## Deviations from the paper
 
