@@ -295,7 +295,7 @@ impl KorfTables {
         static SEQ: AtomicU64 = AtomicU64::new(0);
         let seq = SEQ.fetch_add(1, Ordering::Relaxed);
         let tmp = path.with_extension(format!("tmp{}-{seq}", std::process::id()));
-        {
+        let write = || -> io::Result<()> {
             let mut f = io::BufWriter::new(fs::File::create(&tmp)?);
             f.write_all(MAGIC)?;
             f.write_all(&FORMAT_VERSION.to_le_bytes())?;
@@ -307,8 +307,14 @@ impl KorfTables {
             }
             f.write_all(&h.0.to_le_bytes())?;
             f.flush()?;
+            drop(f);
+            fs::rename(&tmp, path)
+        };
+        let result = write();
+        if result.is_err() {
+            let _ = fs::remove_file(&tmp);
         }
-        fs::rename(&tmp, path)
+        result
     }
 
     /// Read tables written by [`save`](Self::save), checking sizes and checksum.
