@@ -11,9 +11,15 @@ rust-version.workspace = true
 name = "gpss"
 path = "src/main.rs"
 
+[features]
+default = []
+# Learned heuristics via ONNX Runtime (`--weights`). Downloads ONNX Runtime at build time.
+learn = ["gpss-learn/onnx"]
+
 [dependencies]
 gpss-core.workspace = true
 gpss-puzzles.workspace = true
+gpss-learn.workspace = true
 clap.workspace = true
 rand.workspace = true
 serde.workspace = true

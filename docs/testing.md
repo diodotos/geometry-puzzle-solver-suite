@@ -58,7 +58,10 @@ expanded, and batch size vs latency.
 `.github/workflows/ci.yml`: fmt, clippy (`-D warnings`), tests (including the
 `gpss-bench` counter baselines), `gpss-bench check` for a readable per-bucket summary, the
 full corpus against the Rust CLI (IDA* and A* with the dual heuristic; BFS up to depth 8),
-and a build plus short-range run of the legacy C++.
+a build plus short-range run of the legacy C++, and a `learned` job: `gpss-learn`/`gpss-cli`
+with the `onnx`/`learn` features (clippy + tests), the Python trainer and launcher tests
+(cloud calls mocked), BWAS with the shipped weights on the full corpus, and BWAS with
+`--lambda 1` + dual heuristic checked for optimal lengths.
 
 If CI fails in `gpss-bench`: a correctness failure is a bug; a counter difference means
 the search explores differently. If that is intended, run

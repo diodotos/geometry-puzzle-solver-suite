@@ -13,6 +13,8 @@
    |  cube   (notation)      | ----------------------> |  Puzzle      Heuristic<P>       |
    |  cube2  (state, coords, |                         |  Coordinate<P>  PatternDatabase |
    |          heuristics)    |                         |  Solver<P>: Bfs AStar IdaStar   |
+   |             BatchWeightedAStar  |
+   |  Encodable (optional)           |
    +-------------------------+                         +---------------------------------+
 
    conformance/  (Python, stdlib)  -- runs any CLI as a black box, validates with an
@@ -20,7 +22,8 @@
    legacy/cpp/   (C++17)           -- the original CubeSolver, kept as the baseline
 ```
 
-Dependencies point one way: `cli -> puzzles -> core`. `gpss-core` never names a concrete
+`gpss-learn` (data generation, manifests, ONNX inference) sits beside `gpss-puzzles` and
+depends only on `gpss-core`. Dependencies point one way: `cli -> {puzzles, learn} -> core`. `gpss-core` never names a concrete
 puzzle (see `AGENTS.md`, invariant 1).
 
 ## The three traits
@@ -48,7 +51,8 @@ geometry spec). States are plain values; solvers own their nodes.
 ### `Heuristic<P>` (`gpss-core/src/heuristic.rs`)
 
 `estimate(&state) -> u32`, `estimate_batch(&[state], &mut Vec<u32>)` (override for
-neural networks), `is_admissible()`. Combinators: `ZeroHeuristic`, `MaxHeuristic`;
+neural networks), `estimate_batch_real(&[state], &mut Vec<f32>)` (fractional estimates,
+used by BWAS; defaults to `estimate_batch`), `is_admissible()`. Combinators: `ZeroHeuristic`, `MaxHeuristic`;
 `PdbHeuristic<C>` turns any `Coordinate<P>` into a heuristic via a `PatternDatabase`.
 
 ### `Solver<P>` (`gpss-core/src/search/`)
@@ -75,8 +79,30 @@ distinguishes "no solution exists" from "a limit was hit" and carries stats eith
 | a solver | implement `Solver<P>` in `gpss-core/src/search/` |
 | a CLI command | a subcommand in `gpss-cli`; keep logic in the libraries |
 
+### `Encodable` (`gpss-core/src/encode.rs`, optional)
+
+`encoding() -> EncodingSpec` and `encode(&state, &mut [u8])`: a fixed-length categorical
+state encoding for learned heuristics. Rust is the only definition of it (ADR 0008).
+
+## Learned solver
+
+```text
+ gpss scramble-data (Rust)  --encoded states + successors-->  training/ (PyTorch DAVI)
+                                                                     | export
+ gpss solve --solver bwas --weights m.json  <--  weights/<puzzle>/m.{onnx,json}
+   OnnxHeuristic<P>: Heuristic<P>  (gpss-learn, feature onnx; checks encoding + sha256)
+   BatchWeightedAStar<H>: Solver<P> (gpss-core)
+```
+
+See [`training.md`](training.md) and [`theory/deepcubea.md`](theory/deepcubea.md).
+
+## Crates
+
+- `gpss-learn` - data generator, weights manifests, exact evaluation; `OnnxHeuristic`
+  behind the `onnx` feature (ONNX Runtime loaded at run time). `gpss-cli`'s `learn`
+  feature enables it.
+- `training/` (Python) - PyTorch DAVI trainer, ONNX export, `local`/AWS/GCP launchers.
+
 ## Planned crates
 
-- `gpss-learn` - ONNX heuristic + batch weighted A* (feature-gated, needs ONNX Runtime).
-- `training/` (Python) - PyTorch DAVI trainer, ONNX export, AWS/GCP launchers.
 - `gpss-bench` - corpus-driven benchmark suite: CI counter baselines and the local reports in `docs/benchmarks/` (see [benchmarking.md](benchmarking.md)).

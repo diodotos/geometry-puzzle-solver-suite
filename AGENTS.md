@@ -16,8 +16,11 @@ written as a university final project, which is preserved unchanged in
 
 | Path | What it is |
 |------|------------|
-| `crates/gpss-core/` | Puzzle-agnostic traits (`Puzzle`, `Heuristic`, `Coordinate`, `Solver`) and search (BFS, A*, weighted A*, IDA*) plus pattern databases. **Must never depend on a concrete puzzle.** |
+| `crates/gpss-core/` | Puzzle-agnostic traits (`Puzzle`, `Heuristic`, `Coordinate`, `Solver`, optional `Encodable`) and search (BFS, A*, weighted A*, IDA*, batch weighted A*) plus pattern databases. **Must never depend on a concrete puzzle.** |
 | `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics; `cube3` = 3x3x3 cubie model, Kociemba coordinates (`cube3::coord`) and the two-phase solver (`cube3::twophase`), Korf's optimal heuristic (`cube3::korf`); `cuboid` = generic `AxBxC` sticker model (any cube or cuboid, single-layer turns) and its admissible `CornerHeuristic` (corner projection onto the `cube2` table). |
+| `crates/gpss-learn/` | Learned heuristics: training-data generator (`gpss scramble-data`), weights manifests, `OnnxHeuristic` (feature `onnx`, ONNX Runtime loaded at run time), exact evaluation. |
+| `training/` | Python/PyTorch DAVI trainer, ONNX export, `local`/`aws`/`gcp` launchers (`python -m gpss_train`, wrapped by `gpss train`). See `docs/training.md`. |
+| `weights/` | Shipped networks: `<puzzle>/<name>.onnx` + `.json` manifest (encoding spec, checksum, training config, evaluation). |
 | `crates/gpss-cli/` | The `gpss` binary. Thin: parses arguments, builds puzzle + solver, prints text or JSON. |
 | `crates/gpss-bench/` | Benchmark suite over the conformance corpus: correctness, counter baselines (`baselines/<puzzle>.json`, checked in CI), local latency/memory reports. Puzzle registrations live in `src/targets/`. Guide: [`docs/benchmarking.md`](docs/benchmarking.md). |
 | `conformance/` | Language-agnostic black-box test corpus and harness. Independent Python reference model. |
@@ -53,9 +56,19 @@ python3 conformance/harness.py --impl gpss --solver twophase --corpus conformanc
 ./target/release/gpss solve --scramble "R U2 F' R2 U F2 R' U' F R2 U" --solver idastar --heuristic dual
 ./target/release/gpss solve --scramble "R U R'" --format json
 ./target/release/gpss pdb --coordinate perfect
+
+# Learned solver (DeepCubeA-style); see docs/training.md
+pip install -r training/requirements.txt                 # torch, onnx, onnxruntime, pytest
+cargo build --release --features gpss-cli/learn          # gpss with ONNX inference
+./target/release/gpss solve --scramble "R U2 F'" --solver bwas --weights weights/cube2/cube2-davi-v1.json
+./target/release/gpss evaluate --weights weights/cube2/cube2-davi-v1.json   # exact, all 3.67M states
+cargo clippy --all-targets --features gpss-cli/learn -- -D warnings
+(cd training && python3 -m pytest -q)                    # trainer + launcher tests (mocked cloud)
+python3 -m gpss_train launch aws --bucket s3://b/p --budget-usd 5   # dry run from training/
 ```
 
-The harness needs only the Python 3.10+ standard library.
+The harness needs only the Python 3.10+ standard library. `training/` needs the packages in
+`training/requirements.txt`.
 
 ## Invariants you must preserve
 
@@ -101,17 +114,30 @@ The harness needs only the Python 3.10+ standard library.
   run `gpss-bench check --update`, and commit the baseline. Mark slow solvers with
   `ci_max_depth`, non-optimal ones with `max_ratio` when a bound exists, and solvers with
   run-to-run varying node counts with `nondeterministic()`.
+- When you make a puzzle trainable: implement `Encodable` (Rust is the only definition of
+  the encoding; Python never re-implements puzzles, ADR 0008), add it to the CLI's
+  `scramble-data`/`solve`/`evaluate`, and add a preset in `training/gpss_train/davi.py`.
+  Changing what `encode` outputs requires bumping `EncodingSpec::version`.
 - When you cite an algorithm, add it to [`docs/references.md`](docs/references.md).
 
 ## Where things are going
 
 See [`docs/roadmap.md`](docs/roadmap.md). In short: 3x3x3 (Korf IDA* with pattern
 databases + Kociemba two-phase), generic NxNxN / MxNxK geometry, a DeepCubeA-style learned
-heuristic (PyTorch training -> ONNX -> Rust batch-weighted A*), and AWS/GCP training
-launchers. Design the code you touch so these remain possible: puzzle-defined moves,
+heuristic (done for the 2x2x2: PyTorch training -> ONNX -> Rust batch weighted A*;
+AWS/GCP launchers built, not yet run for real; 3x3x3 weights pending a GPU run). Design the code you touch so these remain possible: puzzle-defined moves,
 batch heuristic evaluation, fixed-length state encodings.
 
 ## Things that are easy to get wrong
+
+- Learned weights are pinned to `EncodingSpec` + the ONNX SHA-256 by their manifest. If you
+  re-export, ship the `.onnx` and `.json` together; never hand-edit either.
+- Cloud launchers (`training/gpss_train/launch/`) cost money. Never run them with
+  `--execute` without the repository owner's explicit go-ahead; tests use a mock runner.
+  Credentials come from the provider CLIs' own configuration and must never be committed.
+- The `onnx`/`learn` features need Rust >= 1.92 (`ort` 2.0) and an ONNX Runtime >= 1.22
+  shared library at run time (`pip install onnxruntime` or `ORT_DYLIB_PATH`). The default
+  build has neither requirement.
 
 - The face-turn pruning rule (`FaceTurn::can_follow`) forbids the same face twice and
   the "wrong" order of opposite faces. With only `U R F` there are no opposite pairs, so

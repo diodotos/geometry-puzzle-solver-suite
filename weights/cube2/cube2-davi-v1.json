@@ -1,0 +1,91 @@
+{
+  "format": "gpss-weights",
+  "format_version": 1,
+  "name": "cube2-davi-v1",
+  "encoding": {
+    "puzzle": "cube2",
+    "scheme": "corner-cubie",
+    "version": 1,
+    "len": 8,
+    "classes": 24
+  },
+  "model": {
+    "file": "cube2-davi-v1.onnx",
+    "sha256": "29c57b44be1d78cb9330e7d215edbb8d93785a4d8f276fea6e540f282217c0fd",
+    "input": "state",
+    "output": "cost_to_go",
+    "opset": 18
+  },
+  "architecture": {
+    "type": "resmlp-onehot",
+    "len": 8,
+    "classes": 24,
+    "hidden1": 512,
+    "hidden2": 256,
+    "blocks": 3
+  },
+  "training": {
+    "method": "DAVI (deep approximate value iteration) [Ago19]",
+    "config": {
+      "puzzle": "cube2",
+      "run_dir": "runs/cube2-davi-v1",
+      "min_scramble": 1,
+      "max_scramble": 14,
+      "updates": 400,
+      "states_per_update": 100000,
+      "iters_per_update": 250,
+      "batch_size": 1000,
+      "lr": 0.001,
+      "lr_decay": 0.9999993,
+      "loss_threshold": 0.05,
+      "max_updates_per_sync": 10,
+      "hidden1": 512,
+      "hidden2": 256,
+      "blocks": 3,
+      "seed": 1,
+      "threads": 0,
+      "target_batch": 65536,
+      "gpss_bin": null,
+      "stop_after_syncs": 0,
+      "notes": ""
+    },
+    "updates": 400,
+    "target_syncs": 43,
+    "samples_seen": 40000000,
+    "wall_hours": 1.704,
+    "final_loss": 0.14692816716432572,
+    "hardware": "8 vCPU Intel Xeon (cloud VM), 31 GB RAM, no GPU; PyTorch CPU",
+    "git_commit": "e13851fa85574c143d57f637cc99a1f2ba397828",
+    "exported": "2026-11-11T07:51:10+00:00",
+    "torch": "2.14.1+cpu"
+  },
+  "evaluation": {
+    "solver": "bwas(cube2-davi-v1, lambda=0.6, batch=100)",
+    "lambda": 0.6,
+    "batch_size": 100,
+    "heuristic_mae_all_states": 1.0364,
+    "heuristic_overestimate_rate": 0.1735,
+    "solve_uniform": {
+      "n": 1000,
+      "solved_rate": 1.0,
+      "optimal_rate": 0.999,
+      "mean_length": 8.751,
+      "mean_optimal_length": 8.75,
+      "mean_expanded": 639.1,
+      "median_expanded": 664
+    },
+    "solve_stratified": {
+      "n": 964,
+      "solved_rate": 1.0,
+      "optimal_rate": 0.9969,
+      "mean_length": 6.66,
+      "mean_optimal_length": 6.657,
+      "mean_expanded": 437.3,
+      "median_expanded": 464
+    },
+    "report": "docs/benchmarks/cube2-learned.md"
+  },
+  "references": [
+    "F. Agostinelli, S. McAleer, A. Shmakov, P. Baldi. Solving the Rubik's cube with deep reinforcement learning and search. Nature Machine Intelligence 1:356-363, 2019. doi:10.1038/s42256-019-0070-z"
+  ]
+}
