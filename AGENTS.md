@@ -20,7 +20,7 @@ written as a university final project, which is preserved unchanged in
 | `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics. |
 | `crates/gpss-cli/` | The `gpss` binary. Thin: parses arguments, builds puzzle + solver, prints text or JSON. |
 | `conformance/` | Language-agnostic black-box test corpus and harness. Independent Python reference model. |
-| `legacy/cpp/` | The original C++ solver. Do not modify except to keep it building. |
+| `legacy/cpp/` | The original C++ solver. Do not modify except to keep it building or to drop generated artefacts it regenerates itself. |
 | `docs/` | Architecture, decisions (ADRs), theory, testing, migration, roadmap, references. |
 
 ## Commands

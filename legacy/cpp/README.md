@@ -14,8 +14,6 @@ We had two primary questions:
 1. How fast is A* with this heuristic compared to a baseline BFS algorithm?
 2. How tight is the heuristic?
 
-> **Note (geometry-puzzle-solver-suite):** `perfectLookup.txt` (55 MB) and `heuristic_evaluation.txt` (77 MB) are no longer committed. `CubeSolver` regenerates `perfectLookup.txt` automatically the first time `--solver astarperf` is used (about a minute), and `heuristic_evaluation.txt` is written by the `heuristic` mode. Both files are still in this repository's git history.
-
 ## Running the Code
 
 Our code is written in C++. We provide a CLI with the `argparse.h` library, which is modeled after the `argparse` library in Python (credit to p-ranav). The required first argument is the mode. There are three modes:
