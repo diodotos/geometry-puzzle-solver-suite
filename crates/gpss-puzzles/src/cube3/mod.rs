@@ -231,3 +231,29 @@ impl Puzzle for Cube3 {
         FaceTurn::can_follow(prev, next)
     }
 }
+
+/// Learned-heuristic encoding: the 8 corners as `3 * piece + twist` followed by the 12
+/// edges as `2 * piece + flip`, 24 classes each (20 one-hot groups, 480 inputs). This
+/// is the cubie form of DeepCubeA's sticker one-hot and carries the same information.
+/// Bump `version` if this ever changes. See `docs/theory/deepcubea.md`.
+impl gpss_core::encode::Encodable for Cube3 {
+    fn encoding(&self) -> gpss_core::encode::EncodingSpec {
+        gpss_core::encode::EncodingSpec {
+            puzzle: "cube3".into(),
+            scheme: "cubie".into(),
+            version: 1,
+            len: 20,
+            classes: 24,
+        }
+    }
+
+    #[inline]
+    fn encode(&self, state: &Cube3State, out: &mut [u8]) {
+        for i in 0..8 {
+            out[i] = 3 * state.cp[i] + state.co[i];
+        }
+        for i in 0..12 {
+            out[8 + i] = 2 * state.ep[i] + state.eo[i];
+        }
+    }
+}

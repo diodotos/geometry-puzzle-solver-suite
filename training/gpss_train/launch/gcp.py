@@ -17,6 +17,9 @@ from .bootstrap import bootstrap_script
 from ..davi import DaviConfig
 
 
+GPU_IMAGE_FAMILY = "common-cu129-ubuntu-2204-nvidia-580"
+
+
 class GcpLauncher(Launcher):
     name = "gcp"
     default_machine = "c3-standard-8"
@@ -27,6 +30,14 @@ class GcpLauncher(Launcher):
         "g2-standard-4": MachineType("g2-standard-4", 4, 0.707, speed=14.0, gpu="1x L4"),
     }
 
+    @staticmethod
+    def image_args(machine: MachineType) -> list:
+        """GPU machines boot a Deep Learning VM image that installs the NVIDIA driver."""
+        if machine.gpu:
+            return ["--image-family", GPU_IMAGE_FAMILY, "--image-project", "deeplearning-platform-release",
+                    "--metadata", "install-nvidia-driver=True"]
+        return ["--image-family", "ubuntu-2204-lts", "--image-project", "ubuntu-os-cloud"]
+
     def plan(self, cfg: DaviConfig, res: Resources) -> LaunchPlan:
         if not res.bucket:
             raise ValueError("gcp: --bucket gs://<bucket>/<prefix> is required for artefacts")
@@ -34,12 +45,13 @@ class GcpLauncher(Launcher):
         machine = self.machine(res)
         artefacts = f"{res.bucket.rstrip('/')}/{cfg.puzzle}-davi"
         script = bootstrap_script(cfg, repo=res.repo, ref=res.ref, max_hours=res.max_hours,
-                                  upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts)
+                                  upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts,
+                                  sync="gcloud storage rsync --recursive {src} {dst}")
         cmd = [
             "gcloud", "compute", "instances", "create", "gpss-davi",
             "--zone", zone,
             "--machine-type", machine.name,
-            "--image-family", "ubuntu-2204-lts", "--image-project", "ubuntu-os-cloud",
+            *self.image_args(machine),
             "--boot-disk-size", "40GB",
             "--max-run-duration", f"{math.ceil(res.max_hours * 3600)}s",
             "--instance-termination-action", "DELETE",

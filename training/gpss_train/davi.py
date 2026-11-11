@@ -67,6 +67,10 @@ class DaviConfig:
 # Defaults per puzzle, chosen so that max_scramble exceeds the diameter (God's number).
 PRESETS = {
     "cube2": dict(max_scramble=14),
+    # DeepCubeA's 3x3x3 setup: scrambles up to 30, a (5000, 1000) MLP with four residual
+    # blocks, batch 10,000 (Agostinelli et al. 2019, Methods).
+    "cube3": dict(max_scramble=30, hidden1=5000, hidden2=1000, blocks=4, batch_size=10_000,
+                  states_per_update=1_000_000, run_dir="runs/cube3"),
 }
 
 
