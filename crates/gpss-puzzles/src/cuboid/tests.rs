@@ -202,3 +202,33 @@ fn bfs_and_idastar_agree_on_cuboids() {
         }
     }
 }
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
+
+    /// For random shapes and scrambles: every move is undone by its inverse, has order 2
+    /// or 4, and a scramble followed by its inverse sequence is solved.
+    #[test]
+    fn prop_cuboid_algebra(
+        x in 2u8..=4, y in 2u8..=4, z in 2u8..=4,
+        seed in proptest::prelude::any::<u64>(),
+        len in 0usize..12,
+    ) {
+        let c = Cuboid::new(Dims::new(x, z, y));
+        let mut rng = StdRng::seed_from_u64(seed);
+        let scramble = c.random_scramble(&mut rng, len);
+        let s = c.scrambled(&scramble);
+        for &mv in c.moves() {
+            proptest::prop_assert_eq!(&c.apply(&c.apply(&s, mv), c.inverse(mv)), &s);
+            let twice = c.apply(&c.apply(&s, mv), mv);
+            if mv.turns == 2 {
+                proptest::prop_assert_eq!(&twice, &s);
+            } else {
+                proptest::prop_assert_eq!(&c.apply(&c.apply(&twice, mv), mv), &s);
+            }
+            proptest::prop_assert_eq!(c.parse_move(&mv.to_string()).unwrap(), mv);
+        }
+        let back: Vec<LayerTurn> = scramble.iter().rev().map(|&m| c.inverse(m)).collect();
+        proptest::prop_assert!(c.is_solved(&c.apply_all(&s, &back)));
+    }
+}
