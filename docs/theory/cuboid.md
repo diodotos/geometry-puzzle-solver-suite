@@ -81,7 +81,7 @@ The reduction is infrastructure for searches that start from the goal:
 - generating pattern databases and other tables, which is where the 24x memory saving
   lands;
 - exhaustive distance distributions for small cuboids;
-- the backward half of bidirectional search;
+- the backward half of bidirectional search, keyed by `Cuboid::canonical` on the raw cuboid (not via `RotationReduced`, whose `inverse` is frame-dependent; see the type's docs);
 - Korf-style symmetric heuristic lookups, i.e. taking the max of a PDB over the
   conjugates of a state, for PDBs whose piece subset is not rotation-invariant.
 

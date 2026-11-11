@@ -116,6 +116,13 @@ impl Cuboid {
 /// [`RotationReduced::solve`]). The cuboid's same-axis move pruning does not survive the
 /// frame changes, so [`Puzzle::can_follow`] allows everything. That makes this wrapper a
 /// win for searches with duplicate detection (BFS, A*, BWAS) and a loss for IDA*.
+///
+/// Contract exception: [`Puzzle::inverse`] does **not** satisfy
+/// `apply(apply(s, m), inverse(m)) == s` here, because canonicalising after `m` may change
+/// the frame. The quotient graph is still undirected, but an edge's reverse move depends on
+/// the state, so nothing that undoes moves (backward/bidirectional search, path reversal)
+/// may use this wrapper; use the raw [`Cuboid`] with [`Cuboid::canonical`] as the
+/// visited-set key instead.
 #[derive(Clone, Debug)]
 pub struct RotationReduced {
     cuboid: Cuboid,
@@ -123,6 +130,7 @@ pub struct RotationReduced {
 }
 
 impl RotationReduced {
+    /// The rotation quotient of `cuboid` (clones the cuboid, including its move tables).
     pub fn new(cuboid: &Cuboid) -> Self {
         Self {
             name: format!("{}/rotations", cuboid.name),
@@ -194,6 +202,7 @@ impl Puzzle for RotationReduced {
         self.cuboid.canonical(&self.cuboid.apply(state, mv))
     }
 
+    /// The inverse in the *same* frame; see the contract exception on [`RotationReduced`].
     fn inverse(&self, mv: LayerTurn) -> LayerTurn {
         self.cuboid.inverse(mv)
     }
