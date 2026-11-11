@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gpss-core", "crates/gpss-puzzles", "crates/gpss-learn", "crates/gpss-cli", "crates/gpss-bench", "crates/gpss-viz"]
+members = ["crates/gpss-core", "crates/gpss-puzzles", "crates/gpss-learn", "crates/gpss-cli", "crates/gpss-bench", "crates/gpss-viz", "crates/gpss-viewer"]
 
 [workspace.package]
 version = "0.1.0"

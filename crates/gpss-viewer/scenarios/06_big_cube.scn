@@ -1,0 +1,27 @@
+# 4x4x4: inner layers, and solving a short scramble.
+cuboid 4x4x4
+
+case 6.1 Drag F second column from the right up
+note 2R: the inner layer next to R
+wait 0.4
+drag F@1,-3,3 F@1,3,3 0.5
+settle
+expect state 2R
+
+case 6.2 Drag F second row from the bottom right
+note 3U': the inner layer next to D, turned like D (= 3U')
+reset
+wait 0.3
+drag F@-3,-1,3 F@3,-1,3 0.5
+settle
+expect state 3U'
+
+case 6.3 Scramble 5 and solve
+note IDA* finds a short solution and plays it back
+reset
+scramble 5 21
+wait 0.5
+solve
+settle
+expect feedback solution
+expect solved

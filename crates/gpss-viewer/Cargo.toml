@@ -1,0 +1,24 @@
+[package]
+name = "gpss-viewer"
+description = "3D viewer for gpss cuboids: an eframe/wgpu desktop app and a headless scenario recorder."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+# eframe/egui/wgpu need a newer compiler than the workspace MSRV (ADR 0010).
+rust-version = "1.95"
+
+[dependencies]
+gpss-core.workspace = true
+gpss-puzzles.workspace = true
+gpss-viz = { path = "../gpss-viz" }
+clap.workspace = true
+eframe = { version = "0.37", default-features = false, features = ["accesskit", "default_fonts", "wayland", "wgpu", "x11"] }
+bytemuck = { version = "1", features = ["derive"] }
+pollster = "0.4"
+glam = "0.30"
+thiserror.workspace = true
+
+[[bin]]
+name = "gpss-viewer"
+path = "src/main.rs"

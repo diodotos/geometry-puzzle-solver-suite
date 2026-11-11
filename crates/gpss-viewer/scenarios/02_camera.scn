@@ -1,0 +1,53 @@
+# Camera: orbit and zoom never change the puzzle.
+cuboid 3x3x3
+
+case 2.1 Drag empty space right
+note Orbit: the cube spins about the vertical; no turn
+wait 0.4
+drag 60,420 300,420 0.8
+wait 0.3
+expect camera-moved
+expect solved
+expect no-feedback turn
+
+case 2.2 Drag empty space up
+note Orbit: view tilts so the bottom (D, yellow) comes into view; no turn
+drag 60,440 60,240 0.8
+wait 0.3
+expect camera-moved
+expect solved
+
+case 2.3 Keep tilting far past the pole
+note Pitch is clamped at 85 degrees; the view never flips over
+drag 60,460 60,40 0.8
+drag 60,460 60,40 0.8
+wait 0.3
+expect solved
+
+case 2.4 Right-drag across the cube
+note A secondary-button drag orbits even when it starts on a sticker
+home
+drag F@0,0,2 +200,0 0.8 right
+wait 0.3
+expect camera-moved
+expect solved
+expect no-feedback turn
+
+case 2.5 Wheel up, then down
+note Zoom in, then out
+scroll 3
+wait 0.5
+scroll -6
+wait 0.5
+expect camera-moved
+expect solved
+
+case 2.6 Wheel far past both limits
+note Zoom is clamped between 0.6x and 3x the framing distance
+scroll 40
+wait 0.5
+scroll -80
+wait 0.5
+scroll 4
+wait 0.5
+expect solved
