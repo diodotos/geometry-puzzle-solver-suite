@@ -91,10 +91,12 @@ def bellman_targets(target: Optional[nn.Module], batch: DaviBatch, chunk: int) -
         child_values = np.zeros((n, m), dtype=np.float32)
     else:
         target.eval()
+        device = next(target.parameters(), torch.empty(0)).device
         flat = torch.from_numpy(batch.children.reshape(n * m, length).astype(np.int64))
         out = np.empty(n * m, dtype=np.float32)
         for start in range(0, n * m, chunk):
-            out[start:start + chunk] = target(flat[start:start + chunk]).clamp_min(0).numpy()
+            part = target(flat[start:start + chunk].to(device)).clamp_min(0)
+            out[start:start + chunk] = part.cpu().numpy()
         child_values = out.reshape(n, m)
     child_values[batch.child_is_goal] = 0.0
     y = (1.0 + child_values).min(axis=1)
@@ -119,7 +121,7 @@ def _save(run_dir: Path, cfg: DaviConfig, model: nn.Module, target: Optional[nn.
 
 
 def load_checkpoint(path: Path):
-    return torch.load(path, map_location="cpu", weights_only=False)
+    return torch.load(path, map_location="cpu", weights_only=True)
 
 
 def build_model(arch_dict: dict) -> CostToGo:
@@ -139,7 +141,8 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
     source = source or RustDataSource(cfg.puzzle, cfg.min_scramble, cfg.max_scramble, cfg.gpss_bin)
     encoding = source.encoding()
     arch = Architecture(encoding["len"], encoding["classes"], cfg.hidden1, cfg.hidden2, cfg.blocks)
-    model = CostToGo(arch)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = CostToGo(arch).to(device)
     target: Optional[CostToGo] = None
     opt = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     sched = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=cfg.lr_decay)
@@ -161,7 +164,7 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
         log(f"resumed at update {st.update} ({st.syncs} syncs)")
     (run_dir / "config.json").write_text(json.dumps({**cfg.to_dict(), "encoding": encoding,
                                                      "architecture": arch.to_dict()}, indent=2))
-    log(f"{encoding['key']}: {parameter_count(model):,} parameters, run dir {run_dir}")
+    log(f"{encoding['key']}: {parameter_count(model):,} parameters on {device}, run dir {run_dir}")
 
     loss_fn = nn.MSELoss()
     with open(run_dir / "log.jsonl", "a") as logf:
@@ -169,15 +172,15 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
             t0 = time.perf_counter()
             batch = source.sample(cfg.states_per_update, seed=cfg.seed * 1_000_003 + st.update)
             t_data = time.perf_counter() - t0
-            y = torch.from_numpy(bellman_targets(target, batch, cfg.target_batch))
-            x = torch.from_numpy(batch.states.astype(np.int64))
+            y = torch.from_numpy(bellman_targets(target, batch, cfg.target_batch)).to(device)
+            x = torch.from_numpy(batch.states.astype(np.int64)).to(device)
             t_target = time.perf_counter() - t0 - t_data
 
             model.train()
             losses = []
             n = x.shape[0]
             for _ in range(cfg.iters_per_update):
-                idx = torch.from_numpy(rng.integers(0, n, size=min(cfg.batch_size, n)))
+                idx = torch.from_numpy(rng.integers(0, n, size=min(cfg.batch_size, n))).to(device)
                 loss = loss_fn(model(x[idx]), y[idx])
                 opt.zero_grad(set_to_none=True)
                 loss.backward()
