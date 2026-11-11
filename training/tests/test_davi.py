@@ -65,3 +65,12 @@ def test_train_and_resume(tmp_path):
     ck = torch.load(tmp_path / "run" / "checkpoint.pt", weights_only=False)
     assert ck["state"]["update"] == 3
     assert len((tmp_path / "run" / "log.jsonl").read_text().splitlines()) == 3
+
+
+def test_forced_sync_after_stall(tmp_path):
+    cfg = DaviConfig(run_dir=str(tmp_path / "run"), updates=5, states_per_update=16, iters_per_update=1,
+                     batch_size=8, hidden1=16, hidden2=8, blocks=1, loss_threshold=-1.0, max_updates_per_sync=2)
+    train(cfg, source=FakeSource(), log=lambda s: None)
+    ck = torch.load(tmp_path / "run" / "checkpoint.pt", weights_only=False)
+    assert ck["state"]["syncs"] == 2 and ck["state"]["last_sync_update"] == 4
+    assert [r["forced_sync"] for r in ck["state"]["history"]] == [False, True, False, True, False]

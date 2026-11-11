@@ -93,7 +93,9 @@ DAVI as in [Ago19]:
   frozen target network `J'` (zero before the first sync); negative `J'` outputs are
   clamped to 0;
 - `iters_per_update` Adam steps of `batch_size` on MSE;
-- if the update's mean loss is below `loss_threshold` (0.05, as in the paper), `J' <- J`.
+- if the update's mean loss is below `loss_threshold` (0.05, as in the paper), `J' <- J`;
+  as a fallback, also after `max_updates_per_sync` (10) updates without a sync (logged as
+  `forced_sync`).
 
 Distances propagate one move per sync, so the target maximum `y_max` in the log climbs by
 about one per sync until it reaches the puzzle's diameter (11 for the 2x2x2 in the
@@ -110,6 +112,7 @@ Main options (all have defaults; `--help` lists them):
 | `--iters-per-update` / `--batch-size` | 250 / 1000 | Adam steps per update and minibatch |
 | `--min-scramble` / `--max-scramble` | 1 / 14 (cube2) | scramble depth range |
 | `--loss-threshold` | 0.05 | target-network sync threshold |
+| `--max-updates-per-sync` | 10 | force a sync after this many updates without one (0 = never) |
 | `--hidden1` `--hidden2` `--blocks` | 512 256 3 | network size |
 | `--lr` `--lr-decay` | 1e-3, 0.9999993 | Adam LR, per-step exponential decay |
 | `--threads` | all | torch intra-op threads |
@@ -213,8 +216,10 @@ run against a real account yet.
 
 - Smaller network for the 2x2x2 (630k parameters instead of ~14.7M); same shape.
 - Scramble range `1..14` instead of `1..30` (the 2x2x2's diameter is 11).
-- Fixed number of updates instead of training until a time budget; the sync rule
-  (loss < 0.05) is the paper's.
+- Fixed number of updates instead of training until a time budget. The sync rule
+  (loss < 0.05) is the paper's, plus a forced sync after 10 updates without one: with the
+  small 2x2x2 network the loss plateaued around 0.08 once targets reached depth ~8, which
+  stalled value propagation (observed in the shipped run, updates 14-52).
 - The 2x2x2 searches in a fixed frame with `U R F` only (ADR 0004), so the network never
   sees whole-cube rotations.
 - BWAS goal test happens when a node is popped (as in A*), which makes `lambda = 1` with an

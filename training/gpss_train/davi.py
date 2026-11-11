@@ -10,7 +10,9 @@ Each *update*:
    DeepCubeA reference implementation.
 3. Regress ``J(s)`` to ``y(s)`` for ``iters_per_update`` minibatches (MSE, Adam).
 4. If the mean training loss of the update is below ``loss_threshold`` (0.05 in the
-   paper), copy ``J`` into ``J'``. Distance information propagates one step outward from
+   paper), copy ``J`` into ``J'``. As a fallback (not in the paper), also copy after
+   ``max_updates_per_sync`` updates without a sync: once targets are noisy and large, a
+   small network can plateau just above the threshold and propagation would stall. Distance information propagates one step outward from
    the goal per synchronisation, so a puzzle of diameter ``D`` needs at least ``D`` syncs.
 
 Everything is checkpointed under ``run_dir`` so training can be resumed (``--resume``).
@@ -47,6 +49,7 @@ class DaviConfig:
     lr: float = 1e-3
     lr_decay: float = 0.9999993
     loss_threshold: float = 0.05
+    max_updates_per_sync: int = 10
     hidden1: int = 512
     hidden2: int = 256
     blocks: int = 3
@@ -71,6 +74,7 @@ PRESETS = {
 class TrainState:
     update: int = 0
     syncs: int = 0
+    last_sync_update: int = 0
     samples_seen: int = 0
     wall_s: float = 0.0
     history: list = field(default_factory=list)
@@ -181,17 +185,20 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
                 sched.step()
                 losses.append(loss.item())
             mean_loss = float(np.mean(losses))
-            synced = mean_loss < cfg.loss_threshold
+            st.update += 1
+            stale = cfg.max_updates_per_sync > 0 and st.update - st.last_sync_update >= cfg.max_updates_per_sync
+            synced = mean_loss < cfg.loss_threshold or stale
             if synced:
+                st.last_sync_update = st.update
                 target = copy.deepcopy(model)
                 target.eval()
                 st.syncs += 1
-            st.update += 1
             st.samples_seen += n
             dt = time.perf_counter() - t0
             st.wall_s += dt
             rec = {
-                "update": st.update, "loss": mean_loss, "synced": synced, "syncs": st.syncs,
+                "update": st.update, "loss": mean_loss, "synced": synced,
+                "forced_sync": synced and mean_loss >= cfg.loss_threshold, "syncs": st.syncs,
                 "target_mean": float(y.mean()), "target_max": float(y.max()),
                 "lr": sched.get_last_lr()[0], "data_s": t_data, "target_s": t_target, "update_s": dt,
                 "wall_s": st.wall_s,
