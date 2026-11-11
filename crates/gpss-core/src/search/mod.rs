@@ -103,19 +103,19 @@ impl<'a> Budget<'a> {
 
     /// Record one expansion and check the node/time limits.
     pub fn expand(&mut self) -> Result<(), SearchError> {
-        self.stats.expanded += 1;
         if let Some(max) = self.limits.max_expanded {
-            if self.stats.expanded > max {
+            if self.stats.expanded >= max {
                 return Err(self.stop("node limit reached"));
             }
         }
         if self.stats.expanded % 4096 == 0 {
             if let Some(t) = self.limits.timeout {
-                if self.started.elapsed() > t {
+                if self.started.elapsed() >= t {
                     return Err(self.stop("timeout"));
                 }
             }
         }
+        self.stats.expanded += 1;
         Ok(())
     }
 
