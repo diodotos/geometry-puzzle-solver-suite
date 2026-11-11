@@ -93,6 +93,9 @@ class TrainState:
     syncs: int = 0
     last_sync_update: int = 0
     samples_seen: int = 0
+    # Updates already sampled by the run this one warm-started from (chained): batch seeds
+    # continue past them, so a warm start never retrains on the states its weights have seen.
+    sample_offset: int = 0
     wall_s: float = 0.0
     history: list = field(default_factory=list)
 
@@ -206,6 +209,7 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
             target = copy.deepcopy(model)
             target.load_state_dict(ck["target"])
             target.eval()
+        st.sample_offset = ck["state"].get("sample_offset", 0) + ck["state"]["update"]
         log(f"warm start from {cfg.init_from} (update {ck['state']['update']}, {ck['state']['syncs']} syncs)")
     (run_dir / "config.json").write_text(json.dumps({**cfg.to_dict(), "encoding": encoding,
                                                      "architecture": arch.to_dict()}, indent=2))
@@ -215,7 +219,7 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
     with open(run_dir / "log.jsonl", "a") as logf:
         while st.update < cfg.updates:
             t0 = time.perf_counter()
-            batch = source.sample(cfg.states_per_update, seed=cfg.seed * 1_000_003 + st.update)
+            batch = source.sample(cfg.states_per_update, seed=cfg.seed * 1_000_003 + st.sample_offset + st.update)
             t_data = time.perf_counter() - t0
             y = torch.from_numpy(bellman_targets(target, batch, cfg.target_batch)).to(device)
             x = torch.from_numpy(batch.states.astype(np.int64)).to(device)

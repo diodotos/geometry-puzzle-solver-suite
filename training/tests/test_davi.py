@@ -102,6 +102,7 @@ def test_init_from_copies_weights_but_starts_fresh(tmp_path):
     ck = torch.load(tmp_path / "b" / "checkpoint.pt", weights_only=True)
     assert ck["state"]["update"] == 1 and ck["optimizer"]["param_groups"][0]["initial_lr"] == 1e-4
     assert ck["target"] is not None and src["target"] is not None
+    assert ck["state"]["sample_offset"] == 3  # batches continue after the source run's 3
     with pytest.raises(ValueError, match="architecture"):
         train(DaviConfig(run_dir=str(tmp_path / "c"), updates=1, init_from=cfg.init_from,
                          **{**small, "hidden1": 32}), source=FakeSource(), log=lambda s: None)
