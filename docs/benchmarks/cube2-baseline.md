@@ -34,7 +34,8 @@ whitespace, malformed notation; see `conformance/known_deviations.json`).
   comparison that matters for the migration is correctness plus the machine-independent
   `expanded`/`generated` counters, which the Rust JSON output reports.
 - Times under 1 ms are at the resolution of process-level measurement. In-process
-  micro-benchmarks (planned `gpss-bench`) will give precise numbers for short solves.
+  micro-benchmarks in [`cube2-gpss-bench.md`](cube2-gpss-bench.md) give precise numbers
+  for short solves.
 
 ## Reproduce
 

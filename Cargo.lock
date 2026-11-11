@@ -249,6 +249,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpss-bench"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "gpss-core",
+ "gpss-puzzles",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "gpss-cli"
 version = "0.1.0"
 dependencies = [

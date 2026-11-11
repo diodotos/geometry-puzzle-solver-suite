@@ -1,0 +1,21 @@
+[package]
+name = "gpss-bench"
+description = "Benchmark and regression suite: corpus-driven correctness, deterministic search counters, in-process latency, memory and table build times for any Puzzle + Solver."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "gpss-bench"
+path = "src/main.rs"
+
+[dependencies]
+gpss-core.workspace = true
+gpss-puzzles.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

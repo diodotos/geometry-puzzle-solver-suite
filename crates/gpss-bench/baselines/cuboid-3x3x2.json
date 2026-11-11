@@ -1,0 +1,22 @@
+{
+  "puzzle": "cuboid-3x3x2",
+  "corpus_fingerprint": "fnv1a64:69cfd36c6ede35ba",
+  "targets": {
+    "cuboid-3x3x2/idastar-zero": {
+      "3x3x2-d1-0": {"length":1,"expanded":5,"generated":46,"peak_stored":2,"iterations":2},
+      "3x3x2-d1-1": {"length":1,"expanded":5,"generated":46,"peak_stored":2,"iterations":2},
+      "3x3x2-d1-2": {"length":1,"expanded":7,"generated":66,"peak_stored":2,"iterations":2},
+      "3x3x2-d2-0": {"length":2,"expanded":37,"generated":321,"peak_stored":3,"iterations":3},
+      "3x3x2-d2-1": {"length":2,"expanded":61,"generated":528,"peak_stored":3,"iterations":3},
+      "3x3x2-d2-2": {"length":2,"expanded":77,"generated":670,"peak_stored":3,"iterations":3},
+      "3x3x2-d3-0": {"length":3,"expanded":591,"generated":5205,"peak_stored":4,"iterations":4},
+      "3x3x2-d3-1": {"length":3,"expanded":347,"generated":3038,"peak_stored":4,"iterations":4},
+      "3x3x2-d3-2": {"length":3,"expanded":445,"generated":3901,"peak_stored":4,"iterations":4},
+      "3x3x2-d4-0": {"length":4,"expanded":2392,"generated":20926,"peak_stored":5,"iterations":5},
+      "3x3x2-d4-1": {"length":4,"expanded":4323,"generated":37764,"peak_stored":5,"iterations":5},
+      "3x3x2-d4-2": {"length":4,"expanded":2387,"generated":20884,"peak_stored":5,"iterations":5},
+      "3x3x2-rotation": {"length":0,"expanded":0,"generated":0,"peak_stored":0,"iterations":1},
+      "3x3x2-solved": {"length":0,"expanded":0,"generated":0,"peak_stored":0,"iterations":1}
+    }
+  }
+}
