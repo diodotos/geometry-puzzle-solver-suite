@@ -155,8 +155,11 @@ must re-export (the checksum will no longer match).
   The default build has no ONNX dependency.
 - ONNX Runtime (>= 1.22) is loaded at run time from `$ORT_DYLIB_PATH`, else from the
   Python `onnxruntime` package, else the system library path.
-- `gpss solve --solver bwas --weights <manifest.json> [--lambda L] [--batch-size N]
-  [--threads T]`. `--weights` also accepts the `.onnx` (the manifest is found next to it).
+- `gpss solve [--puzzle cube2|cube3] --solver bwas --weights <manifest.json> [--lambda L]
+  [--batch-size N] [--threads T]`. `--weights` also accepts the `.onnx` (the manifest is
+  found next to it), and the manifest's encoding must match the puzzle's (a 2x2x2 network
+  is refused for `--puzzle cube3`). `astar`/`idastar` also accept `--weights`; `bfs` and
+  `twophase` do not.
   Without `--weights`, `bwas` uses the classical `--heuristic` (with `--lambda 1` and an
   admissible heuristic it is optimal; CI checks this on the full corpus).
 - In code: `OnnxHeuristic::load(puzzle, path, threads)?` gives a `Heuristic<P>`;
@@ -180,6 +183,16 @@ which gives the exact distance of every state. `gpss evaluate` reports, as JSON:
 
 The committed report for the shipped weights is
 [`benchmarks/cube2-learned.md`](benchmarks/cube2-learned.md).
+
+The 3x3x3 (4.3e19 states) cannot be enumerated, so `gpss evaluate --puzzle cube3` samples:
+
+- `--per-depth` scrambles of each length `1..=--optimal-depth` (default 10), labelled with
+  their exact distance by Korf IDA* (fast to ~12, slow past ~13). Heuristic error and the
+  BWAS solve report are computed over these, exactly as for the 2x2x2.
+- `--random` states 100 random moves deep (distance unknown, typically 17-19): only %
+  solved, mean/max length and effort are reported.
+
+Without `--weights` it evaluates `--heuristic korf` (or `zero`).
 
 ## Cloud training (`gpss_train launch`)
 

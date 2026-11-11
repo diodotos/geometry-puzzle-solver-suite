@@ -14,13 +14,14 @@ use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand, ValueEnum};
+use gpss_core::encode::Encodable;
 use gpss_core::pdb::PatternDatabase;
 use gpss_core::puzzle::format_moves;
 use gpss_core::search::{
     AStar, BatchWeightedAStar, Bfs, IdaStar, SearchError, SearchLimits, SearchStats, Solution,
     Solver,
 };
-use gpss_core::{Heuristic, ZeroHeuristic};
+use gpss_core::{Heuristic, Puzzle, ZeroHeuristic};
 use gpss_learn::data::{self, ScrambleConfig};
 use gpss_learn::eval;
 use gpss_puzzles::cube::{parse_sequence, random_scramble};
@@ -138,6 +139,10 @@ enum Command {
         /// Per-solve node limit; a solve that hits it counts as unsolved.
         #[arg(long)]
         max_expanded: Option<u64>,
+        /// cube3 only: label --per-depth states for each scramble length 1..=this with
+        /// their exact distance (Korf IDA*, slow past ~13).
+        #[arg(long, default_value_t = 10)]
+        optimal_depth: u8,
     },
     /// Write DAVI training data (scrambled states, their successors, goal masks; all
     /// encoded) for `training/`. See `crates/gpss-learn/src/data.rs` for the format.
@@ -211,7 +216,7 @@ impl LearnedArgs {
 }
 
 /// A heuristic plus the name to report for it.
-type BuiltHeuristic = (Box<dyn Heuristic<Cube2>>, String);
+type BuiltHeuristic<P = Cube2> = (Box<dyn Heuristic<P>>, String);
 
 /// Build the classical heuristic `name`, or the learned one from `--weights`.
 fn build_heuristic(
@@ -220,7 +225,7 @@ fn build_heuristic(
     learned: &LearnedArgs,
 ) -> Result<BuiltHeuristic, (u8, &'static str, String)> {
     if let Some(weights) = &learned.weights {
-        return load_learned(puzzle, weights, learned.threads);
+        return load_learned(puzzle.clone(), weights, learned.threads);
     }
     let Some(kind) = Cube2Heuristic::from_name(name) else {
         return Err((2, "invalid_argument", format!("unknown heuristic {name:?}")));
@@ -228,15 +233,16 @@ fn build_heuristic(
     Ok((kind.build(puzzle), kind.name().to_string()))
 }
 
+/// A learned heuristic for any `Encodable` puzzle; the manifest's encoding must match.
 #[cfg(feature = "learn")]
-fn load_learned(
-    puzzle: &Cube2,
+fn load_learned<P: Encodable + 'static>(
+    puzzle: P,
     weights: &Path,
     threads: Option<usize>,
-) -> Result<BuiltHeuristic, (u8, &'static str, String)> {
-    match gpss_learn::OnnxHeuristic::load(puzzle.clone(), weights, threads) {
+) -> Result<BuiltHeuristic<P>, (u8, &'static str, String)> {
+    match gpss_learn::OnnxHeuristic::load(puzzle, weights, threads) {
         Ok(h) => {
-            let name = Heuristic::<Cube2>::name(&h);
+            let name = Heuristic::<P>::name(&h);
             Ok((Box::new(h), name))
         }
         Err(e) => Err((2, "invalid_weights", e.to_string())),
@@ -244,11 +250,11 @@ fn load_learned(
 }
 
 #[cfg(not(feature = "learn"))]
-fn load_learned(
-    _puzzle: &Cube2,
+fn load_learned<P: Encodable + 'static>(
+    _puzzle: P,
     weights: &Path,
     _threads: Option<usize>,
-) -> Result<BuiltHeuristic, (u8, &'static str, String)> {
+) -> Result<BuiltHeuristic<P>, (u8, &'static str, String)> {
     // Validate the manifest anyway so mistakes surface before a rebuild.
     if let Err(e) = gpss_learn::Manifest::load(weights) {
         return Err((2, "invalid_weights", e.to_string()));
@@ -302,12 +308,12 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
     if let Err(msg) = req.learned.validate() {
         return fail(format, 2, "invalid_argument", &msg);
     }
-    if req.learned.weights.is_some() && puzzle != PuzzleKind::Cube2 {
+    if req.learned.weights.is_some() && matches!(puzzle, PuzzleKind::Cuboid(_)) {
         return fail(
             format,
             2,
             "invalid_argument",
-            "--weights: learned heuristics are only available for --puzzle cube2 so far",
+            "--weights: learned heuristics need --puzzle cube2 or cube3 (cuboids have no encoding yet)",
         );
     }
     if !(req.weight.is_finite() && req.weight >= 1.0) {
@@ -371,18 +377,41 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
             )
         }
         PuzzleKind::Cube3 => {
-            let h = req.heuristic.unwrap_or("korf");
-            let heuristic: Box<dyn Heuristic<Cube3>> = match (req.solver, h) {
-                (SolverKind::Astar | SolverKind::Idastar | SolverKind::Bwas, "korf") => {
-                    Box::new(KorfHeuristic::new())
+            let learned = match (&req.learned.weights, req.solver) {
+                (Some(_), SolverKind::Bfs | SolverKind::Twophase) => {
+                    return fail(
+                        format,
+                        2,
+                        "invalid_argument",
+                        "--weights needs --solver astar, idastar or bwas",
+                    )
                 }
-                (_, "zero") | (SolverKind::Bfs | SolverKind::Twophase, "korf") => {
-                    Box::new(ZeroHeuristic)
+                (Some(weights), _) => {
+                    match load_learned(Cube3::new(), weights, req.learned.threads) {
+                        Ok(built) => Some(built),
+                        Err((code, kind, msg)) => return fail(format, code, kind, &msg),
+                    }
                 }
-                _ => return unknown_heuristic(h),
+                (None, _) => None,
+            };
+            let (heuristic, h): BuiltHeuristic<Cube3> = match learned {
+                Some(built) => built,
+                None => {
+                    let h = req.heuristic.unwrap_or("korf");
+                    let built: Box<dyn Heuristic<Cube3>> = match (req.solver, h) {
+                        (SolverKind::Astar | SolverKind::Idastar | SolverKind::Bwas, "korf") => {
+                            Box::new(KorfHeuristic::new())
+                        }
+                        (_, "zero") | (SolverKind::Bfs | SolverKind::Twophase, "korf") => {
+                            Box::new(ZeroHeuristic)
+                        }
+                        _ => return unknown_heuristic(h),
+                    };
+                    (built, h.to_string())
+                }
             };
             let cube = Cube3::new();
-            let (solver, h_name): (Box<dyn Solver<Cube3>>, Option<&str>) = match req.solver {
+            let (solver, h_name): (Box<dyn Solver<Cube3>>, Option<String>) = match req.solver {
                 SolverKind::Bfs => (Box::new(Bfs), None),
                 SolverKind::Astar => (Box::new(AStar::weighted(heuristic, req.weight)), Some(h)),
                 SolverKind::Idastar => (Box::new(IdaStar::new(heuristic)), Some(h)),
@@ -404,7 +433,7 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
             report(
                 "cube3",
                 &solver.name(),
-                h_name,
+                h_name.as_deref(),
                 &moves,
                 setup_s,
                 result,
@@ -598,14 +627,118 @@ fn evaluate(
     ExitCode::SUCCESS
 }
 
-/// `evaluate` and `scramble-data` need an `Encodable` puzzle (and, for evaluation, an
-/// enumerable state space); only the 2x2x2 qualifies so far.
+/// The 3x3x3 cannot be enumerated, so evaluation samples instead: for each scramble length
+/// `1..=optimal_depth`, `per_depth` scrambles labelled with their exact distance by Korf
+/// IDA* (heuristic error + solution quality), plus `random` states 100 random moves deep
+/// whose distance is unknown (solve rate, length, effort only).
+#[allow(clippy::too_many_arguments)]
+fn evaluate_cube3(
+    heuristic: &str,
+    learned: &LearnedArgs,
+    per_depth: usize,
+    random: usize,
+    seed: u64,
+    max_expanded: Option<u64>,
+    optimal_depth: u8,
+) -> ExitCode {
+    let format = Format::Json;
+    if let Err(msg) = learned.validate() {
+        return fail(format, 2, "invalid_argument", &msg);
+    }
+    let puzzle = Cube3::new();
+    let (h, h_name): BuiltHeuristic<Cube3> = match &learned.weights {
+        Some(weights) => match load_learned(Cube3::new(), weights, learned.threads) {
+            Ok(built) => built,
+            Err((code, kind, msg)) => return fail(format, code, kind, &msg),
+        },
+        None => match heuristic {
+            "korf" | "dual" => (Box::new(KorfHeuristic::new()), "korf".into()),
+            "zero" => (Box::new(ZeroHeuristic), "zero".into()),
+            _ => {
+                return fail(
+                    format,
+                    2,
+                    "invalid_argument",
+                    &format!("unknown heuristic {heuristic:?}"),
+                )
+            }
+        },
+    };
+    let mut rng = StdRng::seed_from_u64(seed);
+    let started = Instant::now();
+    let optimal = IdaStar::new(KorfHeuristic::new());
+    let mut labeled = Vec::with_capacity(per_depth * optimal_depth as usize);
+    for len in 1..=optimal_depth as usize {
+        for _ in 0..per_depth {
+            let state = puzzle.apply_all(&puzzle.solved(), &random_scramble(&mut rng, len));
+            let sol = optimal
+                .solve(&puzzle, &state, &SearchLimits::default())
+                .expect("IDA* with an admissible heuristic always solves the 3x3x3");
+            labeled.push((state, sol.moves.len() as u8));
+        }
+    }
+    let label_s = started.elapsed().as_secs_f64();
+    let heuristic_report = (!labeled.is_empty())
+        .then(|| eval::heuristic_error::<Cube3, _>(h.as_ref(), &labeled, 8192));
+
+    let limits = SearchLimits {
+        max_expanded,
+        ..SearchLimits::default()
+    };
+    let solver = BatchWeightedAStar::new(h.as_ref(), learned.lambda, learned.batch_size);
+    let solve_labeled =
+        (!labeled.is_empty()).then(|| eval::solve_all(&puzzle, &solver, &labeled, &limits));
+    let deep: Vec<_> = (0..random)
+        .map(|_| {
+            (
+                puzzle.apply_all(&puzzle.solved(), &random_scramble(&mut rng, 100)),
+                0u8,
+            )
+        })
+        .collect();
+    // Distance 0 is a placeholder (unknown); only solve rate, length and effort are meaningful.
+    let solve_random = (!deep.is_empty()).then(|| {
+        let r = eval::solve_all(&puzzle, &solver, &deep, &limits).overall;
+        json!({
+            "count": r.count,
+            "solved_rate": r.solved_rate,
+            "mean_length": r.mean_length,
+            "max_length": r.max_extra_moves, // label 0, so extra moves == length
+            "mean_expanded": r.mean_expanded,
+            "max_expanded": r.max_expanded,
+            "mean_time_s": r.mean_time_s,
+        })
+    });
+
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&json!({
+            "puzzle": "cube3",
+            "heuristic": h_name,
+            "weights": learned.weights,
+            "solver": Solver::<Cube3>::name(&solver),
+            "lambda": learned.lambda,
+            "batch_size": learned.batch_size,
+            "seed": seed,
+            "max_expanded": max_expanded,
+            "optimal_depth": optimal_depth,
+            "label_s": label_s,
+            "heuristic_error": heuristic_report,
+            "solve_labeled": { "per_depth": per_depth, "report": solve_labeled },
+            "solve_random": { "count": random, "scramble_length": 100, "report": solve_random },
+        }))
+        .expect("report serialises")
+    );
+    ExitCode::SUCCESS
+}
+
+/// `evaluate` needs an `Encodable` puzzle; cuboids have no encoding yet.
 fn learned_cube2_only(format: Format) -> ExitCode {
     fail(
         format,
         2,
         "invalid_argument",
-        "only --puzzle cube2 is supported here so far (it needs an `Encodable` puzzle)",
+        "only --puzzle cube2 or cube3 is supported here so far (it needs an `Encodable` puzzle)",
     )
 }
 
@@ -777,6 +910,25 @@ fn main() -> ExitCode {
                 },
             )
         }
+        Command::Evaluate {
+            puzzle: PuzzleKind::Cube3,
+            heuristic,
+            learned,
+            per_depth,
+            random,
+            seed,
+            max_expanded,
+            optimal_depth,
+            ..
+        } => evaluate_cube3(
+            &heuristic,
+            &learned,
+            per_depth,
+            random,
+            seed,
+            max_expanded,
+            optimal_depth,
+        ),
         Command::Evaluate { puzzle, .. } if puzzle != PuzzleKind::Cube2 => {
             learned_cube2_only(Format::Json)
         }

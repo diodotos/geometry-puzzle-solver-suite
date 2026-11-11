@@ -38,7 +38,7 @@ is now a place to explore two questions:
 | 2x2x2 | Done. BFS, A*, weighted A*, IDA*; orientation / permutation / dual / perfect pattern databases; 233/233 conformance cases with exact optimal lengths |
 | 3x3x3 | Cubie model and Kociemba two-phase solver (solutions of 20 moves or fewer; median about 0.07 s on random scrambles); 117/117 conformance cases. Korf optimal IDA* (corner + two 6-edge pattern databases, 87 MB, built in about 5 s and cached on disk): optimal up to about 15 moves in under a minute |
 | NxNxN, MxNxK | Generic sticker model (`--puzzle 4x4x4`, `--puzzle 3x3x2`): single-layer turns, half-turn-only axes, exact BFS / A* / IDA*, guided by an admissible corner-projection heuristic (`--heuristic corners`) |
-| Learned search | 2x2x2 done: DeepCubeA-style DAVI training (PyTorch -> ONNX), batch weighted A*, shipped weights evaluated exactly ([report](docs/benchmarks/cube2-learned.md), [guide](docs/training.md)); AWS/GCP launchers built (dry-run tested); 3x3x3 weights planned |
+| Learned search | 2x2x2 done: DeepCubeA-style DAVI training (PyTorch -> ONNX), batch weighted A*, shipped weights evaluated exactly ([report](docs/benchmarks/cube2-learned.md), [guide](docs/training.md)); 3x3x3: training, `solve --weights` and sampled `evaluate` supported, AWS/GCP launchers (GCP L4 spot pilot run); 3x3x3 weights not yet shipped |
 
 ## Quick start
 
