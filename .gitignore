@@ -6,3 +6,7 @@ __pycache__/
 /conformance/reports/
 /training/.venv/
 /training/runs/
+
+# Legacy C++ regenerates these on first use (55 MB / 77 MB)
+legacy/cpp/perfectLookup.txt
+legacy/cpp/heuristic_evaluation.txt
