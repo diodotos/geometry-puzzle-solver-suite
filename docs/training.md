@@ -365,6 +365,19 @@ target itself, not the schedule: the downward bias of `min` over 18 noisy child 
 (held-out RMSE ~0.41), and possibly the training distribution (uniform scramble depth
 1-30, so most states are already near the saturated region).
 
+Same CPU evaluation as the pilot (`gpss evaluate --puzzle cube3 --per-depth 5
+--optimal-depth 10 --random 10 --max-expanded 200000 --lambda 0.6 --batch-size 1000`,
+seed 1):
+
+| | pilot (update 145) | check (update 149) |
+|---|---|---|
+| labelled scrambles 1-10 solved / optimal | 50 / 50 | 50 / 50 |
+| heuristic MAE vs Korf-optimal length | ~0.5 | 0.38 (RMSE 0.60) |
+| random states solved (200k expansions) | 4 / 10 | 5 / 10 |
+| mean solution length (solved random) | 18.5 | 18.8 |
+
+A modest improvement on 10 samples, within noise for the random-state rate.
+
 `python -m gpss_train plot --log pilot=a/log.jsonl --log check=b/log.jsonl --profile
 pilot=a/profile.json --profile check=b/profile.json --out progress.png` draws loss
 (training and held-out), mean and max target, syncs against GPU hours, and `J` by scramble
