@@ -47,6 +47,8 @@ jobs:
         run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --heuristic korf --corpus conformance/corpus/cube3.jsonl --max-depth 7
       - name: 3x3x3 IDA* (no heuristic), depth <= 5
         run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --heuristic zero --corpus conformance/corpus/cube3.jsonl --max-depth 5
+      - name: Generic cuboids (AxBxC) IDA*, full corpus
+        run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --corpus conformance/corpus/cuboid.jsonl
 
   legacy:
     name: Legacy C++ baseline

@@ -19,9 +19,10 @@ use gpss_core::search::{
     AStar, Bfs, IdaStar, SearchError, SearchLimits, SearchStats, Solution, Solver,
 };
 use gpss_core::{Heuristic, ZeroHeuristic};
-use gpss_puzzles::cube::{parse_sequence, random_scramble, FaceTurn};
+use gpss_puzzles::cube::{parse_sequence, random_scramble};
 use gpss_puzzles::cube2::{Cube2, Cube2Heuristic, FullCoord, OrientationCoord, PermutationCoord};
 use gpss_puzzles::cube3::{Cube3, KorfHeuristic, TwoPhase};
+use gpss_puzzles::cuboid::{Cuboid, Dims};
 use rand::{rngs::StdRng, SeedableRng};
 use serde_json::json;
 
@@ -38,12 +39,25 @@ enum Format {
     Json,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PuzzleKind {
     /// 2x2x2 (fixed-frame, 9 moves).
     Cube2,
     /// 3x3x3 (18 face turns).
     Cube3,
+    /// Generic `AxBxC` cube or cuboid (sticker model, every layer turn costs 1).
+    Cuboid(Dims),
+}
+
+fn parse_puzzle(s: &str) -> Result<PuzzleKind, String> {
+    match s {
+        "cube2" => Ok(PuzzleKind::Cube2),
+        "cube3" => Ok(PuzzleKind::Cube3),
+        _ => s
+            .parse()
+            .map(PuzzleKind::Cuboid)
+            .map_err(|e| format!("{e}; or one of cube2, cube3")),
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -62,7 +76,9 @@ enum SolverKind {
 enum Command {
     /// Solve a scrambled puzzle.
     Solve {
-        #[arg(long, value_enum, default_value = "cube2")]
+        /// `cube2`, `cube3`, or `AxBxC` for a generic cuboid (width x depth x height),
+        /// e.g. `4x4x4` or `3x3x2`.
+        #[arg(long, value_parser = parse_puzzle, default_value = "cube2")]
         puzzle: PuzzleKind,
         /// Scramble in WCA notation, e.g. "R U2 F'". Empty means already solved.
         #[arg(long, allow_hyphen_values = true)]
@@ -137,9 +153,12 @@ struct Request<'a> {
 
 fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
     let format = req.format;
-    let moves = match parse_sequence(req.scramble) {
-        Ok(m) => m,
-        Err(e) => return fail(format, 2, "invalid_scramble", &e.to_string()),
+    let moves = match puzzle {
+        PuzzleKind::Cuboid(_) => Vec::new(),
+        _ => match parse_sequence(req.scramble) {
+            Ok(m) => m,
+            Err(e) => return fail(format, 2, "invalid_scramble", &e.to_string()),
+        },
     };
     if !(req.weight.is_finite() && req.weight >= 1.0) {
         return fail(
@@ -227,16 +246,54 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
                 format,
             )
         }
+        PuzzleKind::Cuboid(dims) => {
+            let cuboid = Cuboid::new(dims);
+            let moves = match cuboid.parse_sequence(req.scramble) {
+                Ok(m) => m,
+                Err(e) => return fail(format, 2, "invalid_scramble", &e.to_string()),
+            };
+            let h = req.heuristic.unwrap_or("zero");
+            if h != "zero" {
+                return unknown_heuristic(h);
+            }
+            let (solver, h_name): (Box<dyn Solver<Cuboid>>, Option<&str>) = match req.solver {
+                SolverKind::Bfs => (Box::new(Bfs), None),
+                SolverKind::Astar => (
+                    Box::new(AStar::weighted(ZeroHeuristic, req.weight)),
+                    Some(h),
+                ),
+                SolverKind::Idastar => (Box::new(IdaStar::new(ZeroHeuristic)), Some(h)),
+                SolverKind::Twophase => {
+                    return fail(
+                        format,
+                        2,
+                        "invalid_argument",
+                        "--solver twophase requires --puzzle cube3",
+                    )
+                }
+            };
+            let setup_s = setup.elapsed().as_secs_f64();
+            let result = cuboid.solve_scramble(&moves, solver.as_ref(), &req.limits);
+            report(
+                &dims.to_string(),
+                &solver.name(),
+                h_name,
+                &moves,
+                setup_s,
+                result,
+                format,
+            )
+        }
     }
 }
 
-fn report(
+fn report<M: std::fmt::Display>(
     puzzle: &str,
     solver: &str,
     h_name: Option<&str>,
-    moves: &[FaceTurn],
+    moves: &[M],
     setup_s: f64,
-    result: Result<Solution<FaceTurn>, SearchError>,
+    result: Result<Solution<M>, SearchError>,
     format: Format,
 ) -> ExitCode {
     match result {

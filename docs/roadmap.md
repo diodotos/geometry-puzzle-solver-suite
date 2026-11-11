@@ -5,7 +5,7 @@
 | A | Import CubeSolver history; independent reference model; exhaustive 2x2x2 corpus; black-box harness vs the C++ | Done |
 | B | Rust core: `Puzzle` / `Heuristic` / `Solver` traits, BFS, A*, weighted A*, IDA*, pattern databases, `Cube2`, CLI; parity on the corpus; CI | Done |
 | C1 | 3x3x3 cubie model; Kociemba two-phase; 3x3x3 corpus (exact distances up to 7 by meet-in-the-middle on the reference model, plus superflip and long random scrambles) - **done**. Korf optimal solver (IDA* + corner and two 6-edge PDBs, 4-bit packing, on-disk cache) - **done**. Faster optimal search (7-edge PDBs, symmetry and inverse lookups, coordinate-level IDA*) - later | Done |
-| C1+ | Generic NxNxN / MxNxK cuboids: puzzle-defined moves (slices, wide turns, half-turn-only faces), sticker-permutation puzzle built from a geometry spec | Planned |
+| C1+ | Generic NxNxN / MxNxK cuboids: sticker model, single-layer turns, half-turn-only axes, notation, conformance corpus (`docs/theory/cuboid.md`). Next: rotation canonicalisation, generic PDBs, wide turns, arbitrary cutting planes | Done (model); heuristics planned |
 | C2 | DeepCubeA: `Encodable` trait, scramble data generator, PyTorch DAVI trainer, ONNX export, `OnnxHeuristic`, batch weighted A*; shipped 2x2x2 weights evaluated against the perfect table | Planned |
 | C2+ | Cloud training launchers: `local`, AWS, GCP; cost estimate and confirmation before launch; 3x3x3 weights after a credible GPU run | Planned |
 | C3 | `gpss-bench`: in-process latency, memory, node counters per depth, for every puzzle and solver | Planned |

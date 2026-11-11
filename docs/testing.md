@@ -63,3 +63,10 @@ ball around the scramble. Superflip is included with its published optimum of 20
 Long random scrambles have `optimal_length: null`; for those the harness checks only
 that the solution is correct. CI runs two-phase on the whole corpus and generic IDA*
 on cases of depth 5 or less.
+
+## Cuboid corpus
+
+`conformance/corpus/cuboid.jsonl` (126 cases, from `conformance/generate_cuboid.py`) covers
+2x2x2, 3x3x2, 2x2x3, 2x3x4, 3x3x3 and 4x4x4 under `--puzzle AxBxC`. Its exact lengths are
+single-layer-metric distances up to rotation, taken from a BFS ball in the reference model.
+CI runs IDA* on the whole file. See `docs/theory/cuboid.md`.

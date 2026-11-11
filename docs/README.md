@@ -7,6 +7,7 @@
   - [pattern-databases.md](theory/pattern-databases.md)
   - [cube2.md](theory/cube2.md) - representation, fixed frame, coordinates, distribution
   - [cube3.md](theory/cube3.md) - 3x3x3 cubie model, invariants, coordinates
+  - [cuboid.md](theory/cuboid.md) - generic AxBxC sticker model, notation, metric
   - [korf-optimal-3x3.md](theory/korf-optimal-3x3.md) - Korf's pattern databases, build, cache, performance
   - [kociemba-two-phase.md](theory/kociemba-two-phase.md) - planned
   - [deepcubea.md](theory/deepcubea.md) - planned learned solver
