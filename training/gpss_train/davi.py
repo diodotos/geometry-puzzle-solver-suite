@@ -96,12 +96,14 @@ def bellman_targets(target: Optional[nn.Module], batch: DaviBatch, chunk: int) -
     else:
         target.eval()
         device = next(target.parameters(), torch.empty(0)).device
-        flat = torch.from_numpy(batch.children.reshape(n * m, length).astype(np.int64))
-        out = np.empty(n * m, dtype=np.float32)
+        # Ship the compact uint8 encoding (the model widens it on device) and keep results on
+        # the device until the end: 1M 3x3 states have 18M children.
+        children = np.ascontiguousarray(batch.children.reshape(n * m, length))
+        flat = torch.from_numpy(children if children.flags.writeable else children.copy())
+        out = torch.empty(n * m, dtype=torch.float32, device=device)
         for start in range(0, n * m, chunk):
-            part = target(flat[start:start + chunk].to(device)).clamp_min(0)
-            out[start:start + chunk] = part.cpu().numpy()
-        child_values = out.reshape(n, m)
+            out[start:start + chunk] = target(flat[start:start + chunk].to(device, non_blocking=True)).clamp_min(0)
+        child_values = out.cpu().numpy().reshape(n, m)
     child_values[batch.child_is_goal] = 0.0
     y = (1.0 + child_values).min(axis=1)
     y[batch.is_goal] = 0.0
@@ -146,6 +148,9 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
     encoding = source.encoding()
     arch = Architecture(encoding["len"], encoding["classes"], cfg.hidden1, cfg.hidden2, cfg.blocks)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # TF32 matmuls on Ampere+ GPUs (e.g. L4): several times faster, ~1e-3 relative error.
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
     model = CostToGo(arch).to(device)
     target: Optional[CostToGo] = None
     opt = torch.optim.Adam(model.parameters(), lr=cfg.lr)
