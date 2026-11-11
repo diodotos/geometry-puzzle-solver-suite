@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import shlex
 from typing import List
 
@@ -18,7 +19,8 @@ def train_args(cfg: DaviConfig, run_dir: str) -> List[str]:
 
 
 def bootstrap_script(cfg: DaviConfig, *, repo: str, ref: str, max_hours: float, upload: str, artefacts: str,
-                     sync: str = "", exists: str = "", teardown: str = "", sync_minutes: int = 10) -> str:
+                     sync: str = "", exists: str = "", teardown: str = "", sync_minutes: int = 10,
+                     fetch: str = "") -> str:
     """A cloud-init/startup script: watchdog, toolchain, build, train, export, upload, power off.
 
     ``upload`` and ``sync`` are shell command templates with ``{src}``/``{dst}`` placeholders.
@@ -26,13 +28,21 @@ def bootstrap_script(cfg: DaviConfig, *, repo: str, ref: str, max_hours: float, 
     and restored from there before training (``exists`` is a ``{path}`` template that fails
     only when nothing is there; a failed restore of an existing checkpoint aborts the VM
     rather than silently starting over). ``teardown`` runs on exit before the power-off, for
-    providers where a guest shutdown only stops the VM. A spot/preemptible VM that is reclaimed (and
+    providers where a guest shutdown only stops the VM. ``fetch`` (``{src}``/``{dst}``) copies a
+    single remote object; it downloads a remote ``init_from`` checkpoint (warm start). A spot/preemptible VM that is reclaimed (and
     deleted) loses at most that much work: relaunching the same plan resumes the run.
     """
     run_dir = "/opt/gpss/run"
     minutes = max(1, int(max_hours * 60))
     # Stop training before the kill switch so export + upload still run on the last checkpoint.
     train_minutes = max(1, minutes - max(5, min(15, minutes // 4)))
+    warm = ""
+    if "://" in cfg.init_from:
+        if not fetch:
+            raise ValueError("this backend cannot fetch a remote init_from checkpoint")
+        local = "/opt/gpss/init/checkpoint.pt"
+        warm = f"mkdir -p /opt/gpss/init\n{fetch.format(src=shlex.quote(cfg.init_from), dst=local)}\n"
+        cfg = dataclasses.replace(cfg, init_from=local)
     train = shlex.join(["python3", "-u", "-m", "gpss_train", "train", *train_args(cfg, run_dir), "--resume"])
     out = f"/opt/gpss/weights/{cfg.puzzle}-davi"
     up = upload.format(src="/opt/gpss/out", dst=shlex.quote(artefacts))
@@ -71,7 +81,7 @@ cargo build --release -p gpss-cli
 export GPSS_BIN=/opt/gpss/src/target/release/gpss
 mkdir -p /opt/gpss/out
 cd training
-{mirror}set +e
+{warm}{mirror}set +e
 timeout --signal=INT --kill-after=2m {train_minutes}m {train} 2>&1 | tee /opt/gpss/out/train.log
 status=${{PIPESTATUS[0]}}
 set -e
@@ -83,6 +93,8 @@ case $status in
   *) echo "training failed with exit $status" > /opt/gpss/out/TRAINING_FAILED ;;
 esac
 python3 -m gpss_train export --checkpoint {run_dir}/checkpoint.pt --out {out}
+python3 -m gpss_train profile --checkpoint {run_dir}/checkpoint.pt --out /opt/gpss/out/profile.json \
+  > /opt/gpss/out/profile.md || echo 'depth profile failed'
 cp -r {run_dir}/log.jsonl {run_dir}/config.json {run_dir}/checkpoint.pt /opt/gpss/weights/* /opt/gpss/out/
 {up}
 if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi

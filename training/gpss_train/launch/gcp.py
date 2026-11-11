@@ -49,6 +49,7 @@ class GcpLauncher(Launcher):
         script = bootstrap_script(cfg, repo=res.repo, ref=res.ref, max_hours=res.max_hours,
                                   upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts,
                                   exists="gcloud storage ls {path}", sync="gcloud storage rsync --recursive {src} {dst}",
+                                  fetch="gcloud storage cp {src} {dst}",
                                   teardown=f'gcloud compute instances delete "$(hostname)" --zone {zone} --quiet')
         cmd = [
             "gcloud", "compute", "instances", "create", "gpss-davi",

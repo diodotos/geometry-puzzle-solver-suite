@@ -35,7 +35,8 @@ class AwsLauncher(Launcher):
         artefacts = f"{res.bucket.rstrip('/')}/{cfg.puzzle}-davi"
         script = bootstrap_script(cfg, repo=res.repo, ref=res.ref, max_hours=res.max_hours,
                                   upload="aws s3 cp --recursive {src} {dst}", artefacts=artefacts,
-                                  exists="aws s3 ls {path}", sync="aws s3 sync {src} {dst}")
+                                  exists="aws s3 ls {path}", sync="aws s3 sync {src} {dst}",
+                                  fetch="aws s3 cp {src} {dst}")
         cmd = [
             "aws", "ec2", "run-instances",
             "--region", region,

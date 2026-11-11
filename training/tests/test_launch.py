@@ -156,3 +156,17 @@ def test_gcp_vm_deletes_itself_on_exit():
     assert """trap 'gcloud compute instances delete "$(hostname)" --zone us-central1-a --quiet; shutdown -h now' EXIT""" in script
     cmd = plan.commands[0]
     assert cmd[cmd.index("--scopes") + 1] == "storage-rw,compute-rw"
+
+
+def test_remote_init_from_is_fetched_before_training():
+    import dataclasses
+
+    cfg = dataclasses.replace(CFG, init_from="gs://b/old/cube2-davi/run/checkpoint.pt")
+    script = get_launcher("gcp", Recorder()).plan(cfg, res("gcp", machine="g2-standard-4", spot=True)).files[
+        "gpss-bootstrap.sh"]
+    fetch = "gcloud storage cp gs://b/old/cube2-davi/run/checkpoint.pt /opt/gpss/init/checkpoint.pt"
+    assert script.index(fetch) < script.index("timeout")
+    assert "--init-from /opt/gpss/init/checkpoint.pt" in script and "--init-from gs://" not in script
+    # The depth profile runs after export and never fails the bootstrap.
+    assert script.index("gpss_train export") < script.index("gpss_train profile") < script.index("cp -r")
+    assert "|| echo 'depth profile failed'" in script
