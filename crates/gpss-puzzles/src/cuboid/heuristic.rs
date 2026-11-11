@@ -40,9 +40,7 @@ impl Cuboid {
             let c = facelets.map(|f| state[f as usize]);
             let ori = c.iter().position(|&x| x == 0 || x == 3)?;
             let (c1, c2) = (c[(ori + 1) % 3], c[(ori + 2) % 3]);
-            let piece = CORNER_COLOURS
-                .iter()
-                .position(|p| p[1] == c1 && p[2] == c2)?;
+            let piece = CORNER_COLOURS.iter().position(|p| p == &[c[ori], c1, c2])?;
             if std::mem::replace(&mut seen[piece], true) {
                 return None;
             }

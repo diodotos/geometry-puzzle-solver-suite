@@ -245,6 +245,22 @@ fn corner_projection_matches_cube2() {
 }
 
 #[test]
+fn corner_projection_rejects_impossible_corners() {
+    let c = cuboid("3x3x3");
+    let urf = c.corners[0];
+    // URF's U sticker recoloured D: the remaining colours still name a real piece.
+    let mut s = c.solved();
+    s[urf[0] as usize] = 3;
+    assert_eq!(c.corner_state(&s), None);
+    // Two copies of the URF piece.
+    let mut s = c.solved();
+    for (dst, src) in c.corners[1].iter().zip(urf) {
+        s[*dst as usize] = c.solved()[src as usize];
+    }
+    assert_eq!(c.corner_state(&s), None);
+}
+
+#[test]
 fn corner_heuristic_is_perfect_on_2x2x2_and_zero_on_rotations() {
     let c = cuboid("2x2x2");
     let h = CornerHeuristic::new(&c);
