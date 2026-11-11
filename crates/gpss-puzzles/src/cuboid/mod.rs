@@ -21,8 +21,11 @@
 //!   layers, which keeps distances exact in this metric. For a 2x2x2 that is half-turn
 //!   metric; for a 3x3x3 it is the slice-turn metric.
 
+mod heuristic;
 #[cfg(test)]
 mod tests;
+
+pub use heuristic::CornerHeuristic;
 
 use std::fmt;
 use std::str::FromStr;
@@ -187,6 +190,8 @@ pub struct Cuboid {
     /// `perms[slot(mv)]` is `src` with `new[i] = old[src[i]]`.
     perms: Vec<Option<Box<[u16]>>>,
     layer_offset: [usize; 3],
+    /// Sticker indices of each corner position's facelets, in `cube2` corner order.
+    corners: [[u16; 3]; 8],
 }
 
 const FACES: [(char, Axis, i32); 6] = [
@@ -272,6 +277,21 @@ impl Cuboid {
                 }
             }
         }
+        let corners = heuristic::CORNER_COLOURS.map(|faces| {
+            let normals = faces.map(|f| {
+                let (_, axis, sign) = FACES[f as usize];
+                let mut n = [0; 3];
+                n[axis as usize] = sign;
+                n
+            });
+            let mut pos = [0; 3];
+            for n in normals {
+                for a in Axis::ALL {
+                    pos[a as usize] += n[a as usize] * extent(a);
+                }
+            }
+            normals.map(|n| index[&(pos, n)] as u16)
+        });
         Cuboid {
             dims,
             name: dims.to_string(),
@@ -280,6 +300,7 @@ impl Cuboid {
             moves,
             perms,
             layer_offset,
+            corners,
         }
     }
 
