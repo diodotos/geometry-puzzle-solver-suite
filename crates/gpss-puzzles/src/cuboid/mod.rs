@@ -22,10 +22,12 @@
 //!   metric; for a 3x3x3 it is the slice-turn metric.
 
 mod heuristic;
+mod symmetry;
 #[cfg(test)]
 mod tests;
 
 pub use heuristic::CornerHeuristic;
+pub use symmetry::{ReducedHeuristic, RotationReduced};
 
 use std::fmt;
 use std::str::FromStr;
@@ -192,6 +194,8 @@ pub struct Cuboid {
     layer_offset: [usize; 3],
     /// Sticker indices of each corner position's facelets, in `cube2` corner order.
     corners: [[u16; 3]; 8],
+    /// Whole-puzzle rotations mapping the cuboid onto itself, identity first.
+    rotations: Vec<symmetry::Rotation>,
 }
 
 const FACES: [(char, Axis, i32); 6] = [
@@ -292,6 +296,7 @@ impl Cuboid {
             }
             normals.map(|n| index[&(pos, n)] as u16)
         });
+        let rotations = symmetry::rotations(dims, &stickers, &index);
         Cuboid {
             dims,
             name: dims.to_string(),
@@ -301,6 +306,7 @@ impl Cuboid {
             perms,
             layer_offset,
             corners,
+            rotations,
         }
     }
 

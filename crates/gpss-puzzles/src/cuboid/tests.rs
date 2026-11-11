@@ -2,6 +2,7 @@ use super::*;
 use gpss_core::search::{Bfs, IdaStar};
 use gpss_core::{Heuristic, ZeroHeuristic};
 use rand::rngs::StdRng;
+use rand::Rng;
 use rand::SeedableRng;
 
 fn cuboid(s: &str) -> Cuboid {
@@ -365,4 +366,120 @@ proptest::proptest! {
             proptest::prop_assert!(h.estimate(&c.apply(&s, mv)).abs_diff(hs) <= 1);
         }
     }
+}
+
+#[test]
+fn rotation_groups_have_expected_sizes() {
+    for (name, n) in [
+        ("2x2x2", 24),
+        ("4x4x4", 24),
+        ("3x3x2", 8),
+        ("2x2x3", 8),
+        ("2x3x4", 4),
+    ] {
+        let c = cuboid(name);
+        assert_eq!(c.rotation_count(), n, "{name}");
+        assert_eq!(c.canonical(&c.solved()), c.solved(), "{name}");
+        for k in 0..n {
+            assert_eq!(c.rotate(&c.solved(), k), c.solved(), "{name} rotation {k}");
+        }
+    }
+}
+
+#[test]
+fn rotation_reduced_bfs_matches_raw_and_lifts() {
+    use super::RotationReduced;
+    use gpss_core::search::SearchLimits;
+    for (name, seed) in [("2x2x2", 1), ("3x3x2", 2), ("2x3x4", 3), ("3x3x3", 4)] {
+        let c = cuboid(name);
+        let reduced = RotationReduced::new(&c);
+        let mut rng = StdRng::seed_from_u64(seed);
+        for len in 0..5 {
+            let s = c.scrambled(&c.random_scramble(&mut rng, len));
+            let raw = Bfs.solve(&c, &s, &SearchLimits::default()).unwrap();
+            let red = reduced.solve(&s, &Bfs, &SearchLimits::default()).unwrap();
+            assert_eq!(red.moves.len(), raw.moves.len(), "{name} len {len}");
+            assert!(
+                c.is_solved(&c.apply_all(&s, &red.moves)),
+                "{name} len {len}"
+            );
+        }
+    }
+}
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
+
+    /// Conjugation is a group action that commutes with moves up to a rotated move,
+    /// preserves solvedness and the corner heuristic, and `canonical` picks one class member.
+    #[test]
+    fn prop_rotation_invariants(
+        x in 2u8..=4, y in 2u8..=4, z in 2u8..=4,
+        seed in proptest::prelude::any::<u64>(),
+        len in 0usize..15,
+    ) {
+        let c = Cuboid::new(Dims::new(x, z, y));
+        let h = CornerHeuristic::new(&c);
+        let mut rng = StdRng::seed_from_u64(seed);
+        let s = c.scrambled(&c.random_scramble(&mut rng, len));
+        let canon = c.canonical(&s);
+        proptest::prop_assert_eq!(&c.canonical(&canon), &canon);
+        for k in 0..c.rotation_count() {
+            let r = c.rotate(&s, k);
+            proptest::prop_assert_eq!(&c.canonical(&r), &canon);
+            proptest::prop_assert_eq!(c.is_solved(&r), c.is_solved(&s));
+            proptest::prop_assert_eq!(h.estimate(&r), h.estimate(&s));
+            let mv = c.moves()[rng.gen_range(0..c.moves().len())];
+            let target = c.rotate(&c.apply(&s, mv), k);
+            proptest::prop_assert!(c.moves().iter().any(|&m| c.apply(&r, m) == target));
+        }
+    }
+}
+
+/// From the (fully symmetric) solved state, each BFS level of the quotient holds between
+/// `1/|G|` and all of the raw level, where `G` is the rotation group (orbit counting).
+#[test]
+fn rotation_reduced_levels_from_solved() {
+    use super::RotationReduced;
+    use std::collections::HashSet;
+    fn levels<P: Puzzle>(p: &P, depth: usize) -> Vec<usize>
+    where
+        P::State: std::hash::Hash + Eq + Clone,
+    {
+        let mut seen = HashSet::from([p.solved()]);
+        let mut front = vec![p.solved()];
+        let mut out = vec![1];
+        for _ in 0..depth {
+            let mut next = vec![];
+            for s in &front {
+                for &m in p.moves() {
+                    let t = p.apply(s, m);
+                    if seen.insert(t.clone()) {
+                        next.push(t);
+                    }
+                }
+            }
+            out.push(next.len());
+            front = next;
+        }
+        out
+    }
+    for (name, depth) in [("2x2x2", 4), ("3x3x2", 4), ("3x3x3", 3)] {
+        let c = cuboid(name);
+        let raw = levels(&c, depth);
+        let red = levels(&RotationReduced::new(&c), depth);
+        for (r, q) in raw.iter().zip(&red) {
+            assert!(
+                q <= r && q * c.rotation_count() >= *r,
+                "{name}: {raw:?} vs {red:?}"
+            );
+        }
+        assert!(
+            red.iter().sum::<usize>() * 4 < raw.iter().sum::<usize>(),
+            "{name}"
+        );
+    }
+    let c = cuboid("3x3x3");
+    assert_eq!(levels(&c, 3), [1, 27, 564, 11542]);
+    assert_eq!(levels(&RotationReduced::new(&c), 3), [1, 5, 40, 548]);
 }
