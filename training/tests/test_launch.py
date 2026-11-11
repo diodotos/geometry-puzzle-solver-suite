@@ -98,3 +98,22 @@ def test_local_plan_runs_train():
     confirm_and_launch(get_launcher("local", rec), CFG, Resources("local"), execute=True, assume_yes=True,
                        show=lambda s: None)
     assert rec.calls[0][1:4] == ["-m", "gpss_train", "train"]
+
+
+def test_bootstrap_quotes_bucket_and_stops_training_before_kill_switch():
+    plan = get_launcher("aws", Recorder()).plan(CFG, Resources("aws", max_hours=2, bucket="s3://b/p; touch /pwned"))
+    script = plan.files["gpss-bootstrap.sh"]
+    assert "'s3://b/p; touch /pwned/cube2-davi'" in script
+    # Kill switch at 120 min; training is stopped at 105 min so export + upload still run.
+    assert "shutdown -h +120" in script and "timeout --signal=INT --kill-after=2m 105m" in script
+    assert script.index("timeout") < script.index("gpss_train export") < script.index("aws s3 cp")
+
+
+def test_launch_refuses_to_overwrite_existing_script(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "gpss-bootstrap.sh").write_text("mine")
+    rec = Recorder()
+    with pytest.raises(FileExistsError):
+        confirm_and_launch(get_launcher("aws", rec), CFG, res("aws", budget_usd=100), execute=True,
+                           assume_yes=True, show=lambda s: None)
+    assert rec.calls == [] and (tmp_path / "gpss-bootstrap.sh").read_text() == "mine"

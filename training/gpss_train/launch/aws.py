@@ -68,6 +68,9 @@ class _written:
 
     def __enter__(self):
         import pathlib
+        clash = [name for name in self.files if pathlib.Path(name).exists()]
+        if clash:
+            raise FileExistsError(f"refusing to overwrite {', '.join(clash)} in the working directory; move it first")
         for name, body in self.files.items():
             pathlib.Path(name).write_text(body)
 
