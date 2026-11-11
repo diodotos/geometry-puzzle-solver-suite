@@ -100,6 +100,16 @@ impl Cuboid {
             .collect()
     }
 
+    /// `state` physically turned by rotation `k`: stickers move, colours keep their names.
+    /// Rotations of solved are exactly the states [`Puzzle::is_solved`] accepts.
+    pub fn turn_whole(&self, state: &CuboidState, k: usize) -> CuboidState {
+        self.rotations[k]
+            .src
+            .iter()
+            .map(|&i| state[i as usize])
+            .collect()
+    }
+
     /// The lexicographically smallest conjugate of `state` over all rotations.
     pub fn canonical(&self, state: &CuboidState) -> CuboidState {
         (0..self.rotations.len())

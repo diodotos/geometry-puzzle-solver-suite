@@ -500,18 +500,40 @@ fn orbit_heuristic(name: &str) -> &'static (Cuboid, OrbitHeuristic) {
 
 #[test]
 fn orbit_tables_cover_expected_orbits() {
-    // 3x3x3: edges (24 stickers) and centres (6) are the non-corner orbits.
+    // 3x3x3: edges (24 stickers) and centres (6) are the non-corner orbits. Centres are
+    // solved up to rotation in every state, so only the three edge tables are kept.
     let (c, h) = orbit_heuristic("3x3x3");
     let mut sizes: Vec<usize> = c.sticker_orbits().iter().map(Vec::len).collect();
     sizes.sort();
     assert_eq!(sizes, [6, 24, 24]);
-    assert_eq!(h.tables().len(), 6);
+    assert_eq!(h.tables().len(), 3);
     assert!(h
         .tables()
         .iter()
         .all(|t| t.len() <= 735_471 && t.max_distance() > 0));
     // 2x2x2 has only corners.
     assert!(orbit_heuristic("2x2x2").1.tables().is_empty());
+}
+
+#[test]
+fn orbit_heuristic_is_zero_on_every_solved_orientation() {
+    for name in ["3x3x2", "3x3x3", "4x4x4"] {
+        let (c, h) = orbit_heuristic(name);
+        for k in 0..c.rotation_count() {
+            let s = c.turn_whole(&c.solved(), k);
+            assert!(c.is_solved(&s));
+            assert_eq!(h.estimate(&s), 0, "{name} rotation {k}");
+        }
+    }
+}
+
+#[test]
+fn orbit_heuristic_budget_bounds_large_cubes() {
+    let c = Cuboid::new("8x8x8".parse().unwrap());
+    let h = OrbitHeuristic::new(&c);
+    let total: usize = h.tables().iter().map(OrbitPdb::len).sum();
+    assert!(total as u64 <= orbits::TOTAL_STATES);
+    assert!(!h.tables().is_empty());
 }
 
 #[test]

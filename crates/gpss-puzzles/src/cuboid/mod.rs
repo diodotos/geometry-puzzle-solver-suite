@@ -22,7 +22,7 @@
 //!   metric; for a 3x3x3 it is the slice-turn metric.
 
 mod heuristic;
-mod orbits;
+pub mod orbits;
 mod symmetry;
 #[cfg(test)]
 mod tests;

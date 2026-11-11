@@ -11,7 +11,8 @@
 //! Tracked colour sets are the three opposite-face pairs (U/D, R/L, F/B), merged into one
 //! symbol so that tables stay small: an orbit of 24 positions with 8 tracked stickers has
 //! at most C(24, 8) = 735,471 abstract states. Orbits over 64 positions, or abstractions
-//! over [`MAX_STATES`], are skipped. See `docs/theory/cuboid.md`.
+//! over [`MAX_STATES`], are skipped, and one heuristic builds at most [`TOTAL_STATES`]
+//! abstract states in total. See `docs/theory/cuboid.md`.
 
 use std::collections::HashMap;
 
@@ -21,6 +22,10 @@ use super::{CornerHeuristic, Cuboid, CuboidState};
 
 /// Largest abstract space built per table.
 pub const MAX_STATES: u64 = 3_000_000;
+
+/// Budget on the summed abstract-space bounds of one [`OrbitHeuristic`] (a few hundred MB).
+/// Orbits are taken in order until it is spent, which keeps very large cubes bounded.
+pub const TOTAL_STATES: u64 = 9_000_000;
 
 /// Opposite-face colour pairs, in `U R F D L B` indices.
 const PAIRS: [[u8; 2]; 3] = [[0, 3], [1, 4], [2, 5]];
@@ -78,12 +83,16 @@ impl OrbitPdb {
             table: HashMap::new(),
         };
         let solved = cuboid.solved();
-        let ones = pdb.key(&solved).count_ones() as u64;
-        let n = positions.len() as u64;
-        if n > 64 || ones == 0 || ones == n || binomial(n, ones) > MAX_STATES {
-            return None;
-        }
-        Some(pdb.build(cuboid))
+        let size = pdb.space_size(&solved)?;
+        (size <= MAX_STATES).then(|| pdb.build(cuboid))
+    }
+
+    /// Upper bound on the abstract space, or `None` if the orbit is over 64 positions or
+    /// the abstraction is trivial (no tracked or no untracked positions).
+    fn space_size(&self, solved: &CuboidState) -> Option<u64> {
+        let n = self.positions.len() as u64;
+        let ones = self.key(solved).count_ones() as u64;
+        (n <= 64 && ones > 0 && ones < n).then(|| binomial(n, ones))
     }
 
     fn key(&self, state: &CuboidState) -> u64 {
@@ -112,7 +121,7 @@ impl OrbitPdb {
             })
             .collect();
         let mut frontier: Vec<u64> = (0..cuboid.rotation_count())
-            .map(|k| self.key(&cuboid.rotate(&cuboid.solved(), k)))
+            .map(|k| self.key(&cuboid.turn_whole(&cuboid.solved(), k)))
             .collect();
         frontier.sort_unstable();
         frontier.dedup();
@@ -173,11 +182,29 @@ impl OrbitHeuristic {
     /// Build every table for `cuboid` (seconds on 3x3x3 / 4x4x4; not cached on disk).
     pub fn new(cuboid: &Cuboid) -> Self {
         let corner_stickers: Vec<u16> = cuboid.corners.iter().flatten().copied().collect();
+        let solved = cuboid.solved();
+        let mut budget = TOTAL_STATES;
         let jobs: Vec<(Vec<u16>, [u8; 2])> = cuboid
             .sticker_orbits()
             .into_iter()
             .filter(|o| !o.iter().any(|p| corner_stickers.contains(p)))
             .flat_map(|o| PAIRS.map(|pair| (o.clone(), pair)))
+            .filter(|(o, pair)| {
+                let mut tracked = [false; 6];
+                pair.iter().for_each(|&c| tracked[c as usize] = true);
+                let probe = OrbitPdb {
+                    positions: o.clone(),
+                    tracked,
+                    table: HashMap::new(),
+                };
+                match probe.space_size(&solved) {
+                    Some(size) if size <= MAX_STATES && size <= budget => {
+                        budget -= size;
+                        true
+                    }
+                    _ => false,
+                }
+            })
             .collect();
         let pdbs = std::thread::scope(|s| {
             let handles: Vec<_> = jobs
@@ -187,6 +214,8 @@ impl OrbitHeuristic {
             handles
                 .into_iter()
                 .filter_map(|h| h.join().expect("orbit table build panicked"))
+                // All-zero tables (e.g. odd-cube centres, fixed up to rotation) add nothing.
+                .filter(|p| p.max_distance() > 0)
                 .collect()
         });
         Self {
