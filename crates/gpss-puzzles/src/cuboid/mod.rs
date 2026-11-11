@@ -22,11 +22,13 @@
 //!   metric; for a 3x3x3 it is the slice-turn metric.
 
 mod heuristic;
+pub mod orbits;
 mod symmetry;
 #[cfg(test)]
 mod tests;
 
 pub use heuristic::CornerHeuristic;
+pub use orbits::{OrbitHeuristic, OrbitPdb};
 pub use symmetry::{ReducedHeuristic, RotationReduced};
 
 use std::fmt;

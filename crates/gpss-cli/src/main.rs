@@ -27,7 +27,7 @@ use gpss_learn::eval;
 use gpss_puzzles::cube::{parse_sequence, random_scramble};
 use gpss_puzzles::cube2::{Cube2, Cube2Heuristic, FullCoord, OrientationCoord, PermutationCoord};
 use gpss_puzzles::cube3::{Cube3, KorfHeuristic, TwoPhase};
-use gpss_puzzles::cuboid::{CornerHeuristic, Cuboid, Dims};
+use gpss_puzzles::cuboid::{CornerHeuristic, Cuboid, Dims, OrbitHeuristic};
 use rand::{rngs::StdRng, SeedableRng};
 use serde_json::json;
 
@@ -448,13 +448,14 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
             };
             let h = req.heuristic.unwrap_or(match req.solver {
                 SolverKind::Bfs => "zero",
-                _ => "corners",
+                _ => "orbits",
             });
             let heuristic: Box<dyn Heuristic<Cuboid>> = match h {
                 "corners" if req.solver != SolverKind::Bfs => {
                     Box::new(CornerHeuristic::new(&cuboid))
                 }
-                "zero" | "corners" => Box::new(ZeroHeuristic),
+                "orbits" if req.solver != SolverKind::Bfs => Box::new(OrbitHeuristic::new(&cuboid)),
+                "zero" | "corners" | "orbits" => Box::new(ZeroHeuristic),
                 _ => return unknown_heuristic(h),
             };
             let (solver, h_name): (Box<dyn Solver<Cuboid>>, Option<&str>) = match req.solver {

@@ -483,3 +483,93 @@ fn rotation_reduced_levels_from_solved() {
     assert_eq!(levels(&c, 3), [1, 27, 564, 11542]);
     assert_eq!(levels(&RotationReduced::new(&c), 3), [1, 5, 40, 548]);
 }
+
+fn orbit_heuristic(name: &str) -> &'static (Cuboid, OrbitHeuristic) {
+    static CACHE: std::sync::Mutex<Vec<(&'static str, &'static (Cuboid, OrbitHeuristic))>> =
+        std::sync::Mutex::new(Vec::new());
+    let mut cache = CACHE.lock().unwrap();
+    if let Some((_, h)) = cache.iter().find(|(n, _)| *n == name) {
+        return h;
+    }
+    let c = Cuboid::new(name.parse().unwrap());
+    let h = OrbitHeuristic::new(&c);
+    let leaked: &'static (Cuboid, OrbitHeuristic) = Box::leak(Box::new((c, h)));
+    cache.push((Box::leak(name.to_string().into_boxed_str()), leaked));
+    leaked
+}
+
+#[test]
+fn orbit_tables_cover_expected_orbits() {
+    // 3x3x3: edges (24 stickers) and centres (6) are the non-corner orbits. Centres are
+    // solved up to rotation in every state, so only the three edge tables are kept.
+    let (c, h) = orbit_heuristic("3x3x3");
+    let mut sizes: Vec<usize> = c.sticker_orbits().iter().map(Vec::len).collect();
+    sizes.sort();
+    assert_eq!(sizes, [6, 24, 24]);
+    assert_eq!(h.tables().len(), 3);
+    assert!(h
+        .tables()
+        .iter()
+        .all(|t| t.len() <= 735_471 && t.max_distance() > 0));
+    // 2x2x2 has only corners.
+    assert!(orbit_heuristic("2x2x2").1.tables().is_empty());
+}
+
+#[test]
+fn orbit_heuristic_is_zero_on_every_solved_orientation() {
+    for name in ["3x3x2", "3x3x3", "4x4x4"] {
+        let (c, h) = orbit_heuristic(name);
+        for k in 0..c.rotation_count() {
+            let s = c.turn_whole(&c.solved(), k);
+            assert!(c.is_solved(&s));
+            assert_eq!(h.estimate(&s), 0, "{name} rotation {k}");
+        }
+    }
+}
+
+#[test]
+fn orbit_heuristic_budget_bounds_large_cubes() {
+    let c = Cuboid::new("8x8x8".parse().unwrap());
+    let h = OrbitHeuristic::new(&c);
+    let total: usize = h.tables().iter().map(OrbitPdb::len).sum();
+    assert!(total as u64 <= orbits::TOTAL_STATES);
+    assert!(!h.tables().is_empty());
+}
+
+#[test]
+fn orbit_heuristic_is_admissible_on_bfs_labelled_scrambles() {
+    let mut rng = StdRng::seed_from_u64(7);
+    for name in ["3x3x2", "2x3x4", "3x3x3"] {
+        let (c, h) = orbit_heuristic(name);
+        assert_eq!(h.estimate(&c.solved()), 0);
+        for len in 1..=5 {
+            let s = c.scrambled(&c.random_scramble(&mut rng, len));
+            let exact = Bfs
+                .solve(c, &s, &SearchLimits::default())
+                .unwrap()
+                .moves
+                .len() as u32;
+            assert!(h.estimate(&s) <= exact, "{name} {len}");
+        }
+    }
+}
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
+
+    /// The orbit heuristic is consistent: one move changes it by at most 1.
+    #[test]
+    fn prop_orbit_heuristic_is_consistent(
+        shape in proptest::sample::select(vec!["3x3x2", "2x3x4", "3x3x3", "4x4x4"]),
+        seed in proptest::prelude::any::<u64>(),
+        len in 0usize..30,
+    ) {
+        let (c, h) = orbit_heuristic(shape);
+        let mut rng = StdRng::seed_from_u64(seed);
+        let s = c.scrambled(&c.random_scramble(&mut rng, len));
+        let hs = h.estimate(&s);
+        for &mv in c.moves() {
+            proptest::prop_assert!(h.estimate(&c.apply(&s, mv)).abs_diff(hs) <= 1);
+        }
+    }
+}
