@@ -213,8 +213,8 @@ fn twophase_edge_cases() {
 fn korf_tables_and_optimal_solves() {
     use super::korf::{self, N_CORNERS, N_EDGES6};
     let t = korf::tables();
-    // Corner distribution in the half-turn metric (Korf 1997, Table 1 of the 2x2x2 with
-    // free orientation x 24).
+    // Distance distribution of the corner group in the half-turn metric; the maximum of 11
+    // matches Korf (1997).
     assert_eq!(
         t.corners.histogram(),
         vec![
