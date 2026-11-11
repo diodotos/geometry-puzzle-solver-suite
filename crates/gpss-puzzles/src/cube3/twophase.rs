@@ -159,6 +159,7 @@ impl Default for TwoPhase {
 }
 
 impl TwoPhase {
+    /// A two-phase solver that stops at the first solution of at most `target_length` moves.
     pub fn new(target_length: u32) -> Self {
         Self { target_length }
     }

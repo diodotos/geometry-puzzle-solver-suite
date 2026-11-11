@@ -29,10 +29,12 @@ const fn binom(n: usize, k: usize) -> usize {
     r
 }
 
+/// Corner-orientation coordinate in `0..N_TWIST` (base 3 over the first seven corners).
 pub fn twist(s: &Cube3State) -> u16 {
     s.co[..7].iter().fold(0u16, |a, &c| a * 3 + c as u16)
 }
 
+/// Set corner orientations from a twist coordinate; the eighth corner keeps the sum 0 mod 3.
 pub fn set_twist(s: &mut Cube3State, mut t: u16) {
     let mut sum = 0;
     for i in (0..7).rev() {
@@ -43,10 +45,12 @@ pub fn set_twist(s: &mut Cube3State, mut t: u16) {
     s.co[7] = (3 - sum % 3) % 3;
 }
 
+/// Edge-orientation coordinate in `0..N_FLIP` (base 2 over the first eleven edges).
 pub fn flip(s: &Cube3State) -> u16 {
     s.eo[..11].iter().fold(0u16, |a, &e| a * 2 + e as u16)
 }
 
+/// Set edge orientations from a flip coordinate; the twelfth edge keeps the sum even.
 pub fn set_flip(s: &mut Cube3State, mut f: u16) {
     let mut sum = 0;
     for i in (0..11).rev() {
@@ -70,6 +74,7 @@ pub fn slice(s: &Cube3State) -> u16 {
     idx as u16
 }
 
+/// Place the UD-slice edges at the positions encoded by `idx`; other edges fill the rest in order.
 pub fn set_slice(s: &mut Cube3State, idx: u16) {
     let mut idx = idx as usize;
     let mut is_slice = [false; 12];
@@ -104,6 +109,7 @@ pub fn perm_rank(p: &[u8]) -> u32 {
     r
 }
 
+/// Inverse of [`perm_rank`]: write the permutation of rank `r` into `out`.
 pub fn perm_unrank(mut r: u32, out: &mut [u8]) {
     let n = out.len();
     let mut digits = vec![0u32; n];
@@ -118,10 +124,12 @@ pub fn perm_unrank(mut r: u32, out: &mut [u8]) {
     }
 }
 
+/// Corner-permutation coordinate in `0..N_CPERM`.
 pub fn cperm(s: &Cube3State) -> u16 {
     perm_rank(&s.cp) as u16
 }
 
+/// Set the corner permutation from its coordinate.
 pub fn set_cperm(s: &mut Cube3State, r: u16) {
     perm_unrank(r as u32, &mut s.cp);
 }
@@ -131,6 +139,7 @@ pub fn udeperm(s: &Cube3State) -> u16 {
     perm_rank(&s.ep[..8]) as u16
 }
 
+/// Set the U/D-layer edge permutation from its coordinate.
 pub fn set_udeperm(s: &mut Cube3State, r: u16) {
     perm_unrank(r as u32, &mut s.ep[..8]);
 }
@@ -141,6 +150,7 @@ pub fn sperm(s: &Cube3State) -> u8 {
     perm_rank(&p) as u8
 }
 
+/// Set the slice-edge permutation from its coordinate.
 pub fn set_sperm(s: &mut Cube3State, r: u8) {
     let mut p = [0u8; 4];
     perm_unrank(r as u32, &mut p);

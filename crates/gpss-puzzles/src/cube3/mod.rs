@@ -42,6 +42,7 @@ pub struct Cube3State {
 }
 
 impl Cube3State {
+    /// The solved cube (identity permutation, all orientations 0).
     pub const SOLVED: Cube3State = Cube3State {
         cp: [0, 1, 2, 3, 4, 5, 6, 7],
         co: [0; 8],
@@ -65,6 +66,7 @@ impl Cube3State {
         out
     }
 
+    /// `self` followed by each move of `moves` in turn.
     pub fn then_all(&self, moves: &[FaceTurn]) -> Cube3State {
         moves.iter().fold(*self, |s, &m| s.then(transform(m)))
     }
@@ -176,16 +178,19 @@ impl Default for Cube3 {
 }
 
 impl Cube3 {
+    /// The 3x3x3 with all 18 face turns.
     pub fn new() -> Self {
         Self {
             moves: FaceTurn::all().collect(),
         }
     }
 
+    /// The position reached from solved by applying `scramble`.
     pub fn scrambled(&self, scramble: &[FaceTurn]) -> Cube3State {
         Cube3State::SOLVED.then_all(scramble)
     }
 
+    /// Solve the position reached by `scramble` with `solver`.
     pub fn solve_scramble<S: Solver<Cube3> + ?Sized>(
         &self,
         scramble: &[FaceTurn],
