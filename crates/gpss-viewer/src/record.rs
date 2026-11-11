@@ -658,7 +658,7 @@ fn play(gpu: Option<Gpu<'_>>, script: &Path, opts: &Options) -> Result<Report, S
         .args(["-y", "-loglevel", "error", "-i"])
         .arg(&raw)
         .arg("-vf")
-        .arg(format!("ass={}", ass_path.display()))
+        .arg(format!("ass={}", filter_arg(&ass_path.to_string_lossy())))
         .args([
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
         ])
@@ -678,6 +678,21 @@ fn play(gpu: Option<Gpu<'_>>, script: &Path, opts: &Options) -> Result<Report, S
         video: Some(video),
         log: log_path.display().to_string(),
     })
+}
+
+/// Escape `v` as a filter option value inside an ffmpeg filtergraph: once for the
+/// option level (`\\ ' :`) and once more for the graph level (`\\ ' [ ] , ;`).
+fn filter_arg(v: &str) -> String {
+    let escape = |s: &str, special: &str| {
+        s.chars().fold(String::new(), |mut out, c| {
+            if special.contains(c) {
+                out.push('\\');
+            }
+            out.push(c);
+            out
+        })
+    };
+    escape(&escape(v, "\\':"), "\\'[],;")
 }
 
 #[cfg(test)]
