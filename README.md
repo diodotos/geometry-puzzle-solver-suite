@@ -1,206 +1,139 @@
-# Computational Intelligence for Games Final Project
+# Geometry Puzzle Solver Suite
 
-## Project Description
+[![CI](https://github.com/diodotos/geometry-puzzle-solver-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/diodotos/geometry-puzzle-solver-suite/actions/workflows/ci.yml)
 
-Our project analyzes a particular optimal solver for the 2x2x2 Rubik's Cube. We wanted to create a performant solver that yields optimal solutions. We tailored an admissible A* heuristic for this purpose. Let $C$ be a the state of a 2x2x2 Rubik's Cube, let $M$ be the set of all possible moves so that $M^\Sigma$ is the set of all sequences of moves. For some element $S \in M^\Sigma$ let $S(C)$ be the state of the cube after applying the sequence of moves $S$ to the cube $C$. We define the heuristic $h$ as follows:
+A Rust toolkit for solving permutation puzzles - Rubik's-type cubes today, arbitrary 3D
+geometry puzzles tomorrow - with interchangeable **puzzles**, **heuristics** and
+**search engines**, and a language-agnostic conformance suite that proves the solvers are
+right.
 
-$$h(C) = \max \{ \min_{S \in M^\Sigma} \{ |S| : S(C) \text{ is oriented}\}, \min_{S \in M^\Sigma} \{|S| : S(C) \text{ is permuted}\}\}$$
+```console
+$ gpss solve --scramble "R U2 F' R2 U F2 R' U' F R2 U" --solver idastar --heuristic dual
+Solution: U' R2 F' U F2 U R2 F' U2
+Length: 9 (optimal)
+Solver: idastar(dual)
+Expanded: 1217  Generated: 7285  Peak stored: 9  Iterations: 4
+```
 
-where orientation and permutation of a cube are two properties of a cube, both of which are required to be satisfied for a cube to be in a solved state. 
-This is an admissible heuristic because it is the maximum of two admissible heuristics. The first heuristic is the minimum of the lengths of sequences across orientations and the second heuristic is the minimum of the lengths of sequences across permutations. 
+## Why this exists
 
-We had two primary questions: 
+This project began as [CubeSolver](https://github.com/diodotos/CubeSolver), a C++ optimal
+2x2x2 solver written for a university course on computational intelligence for games. It
+is now a place to explore two questions:
 
-1. How fast is A* with this heuristic compared to a baseline BFS algorithm?
-2. How tight is the heuristic?
+1. **Can a codebase be migrated across languages, by an AI agent, with proof that nothing
+   broke?** The original C++ lives on in [`legacy/cpp/`](legacy/cpp/). Before any Rust was
+   written, its behaviour was frozen into an independent, exhaustively verified test corpus;
+   the Rust rewrite is held to the same oracle. See [`docs/migration.md`](docs/migration.md).
+2. **What does a general interface for "puzzles that solve themselves" look like?** A
+   puzzle only has to say what its states and moves are. Solvers then find solutions either
+   by *complete search* (BFS, A*, IDA* with pattern databases) or, soon, by *self-play*:
+   learning a cost-to-go function from nothing but the move rules, as in DeepCubeA.
+   See [`docs/roadmap.md`](docs/roadmap.md).
 
-## Running the Code
+## Status
 
-Our code is written in C++. We provide a CLI with the `argparse.h` library, which is modeled after the `argparse` library in Python (credit to p-ranav). The required first argument is the mode. There are three modes:
+| | |
+|-|-|
+| 2x2x2 | Done. BFS, A*, weighted A*, IDA*; orientation / permutation / dual / perfect pattern databases; 233/233 conformance cases with exact optimal lengths |
+| 3x3x3 | Planned: Korf optimal IDA* with pattern databases, Kociemba two-phase |
+| NxNxN, MxNxK | Planned: puzzle-defined moves, generic sticker model |
+| Learned search | Planned: DeepCubeA-style DAVI training (PyTorch -> ONNX), batch weighted A*, shipped 2x2x2 weights, AWS/GCP training launchers |
 
-1. `solve` - This mode allows the user to specify a single scramble string and optionally a specific type of solver and the program will output an optimal solution, along with some information about how long it took. This is the primary mode for the user to interact with the program.
-2. `benchmark` - The user specifies a number of trials. The program generates one file with that many random scrambles and solves them with every type of solver, and saves the results to another comma-separated file.
-3. `heuristic` - No user arguments. This mode compares all heuristics and the optimal length of the solution for each scramble, evaluated at all possible positions, and saves the results to a comma-separated file.
+## Quick start
 
-For `solve`, the user must specify a scramble. A scramble must be supplied in standard WCA notation, enclosed in double quotes. They may specify a solver. There are five solvers:
+```bash
+cargo build --release
+./target/release/gpss solve --scramble "F2 U R' U F U' F2 R2 F'"          # IDA* + dual heuristic
+./target/release/gpss solve --scramble "R U R'" --solver bfs --format json
+./target/release/gpss solve --scramble "R U2 F'" --solver astar --weight 2  # weighted A*, not optimal
+./target/release/gpss scramble --length 20 --seed 1
+./target/release/gpss pdb --coordinate perfect                             # full 2x2x2 distance table
+```
 
-1. `bfs` - Breadth-first search
-2. `astardual` - A* with the dual heuristic (the one described above), which is at least as tight as `astarori` and `astarperm`
-3. `astarori` - A* with the orientation heuristic
-4. `astarperm` - A* with the permutation heuristic
-5. `astarperf` - A* with a perfectly tight heuristic, a theoretical best agent
+Solvers: `bfs`, `astar` (`--weight` for weighted A*), `idastar`. Heuristics: `zero`,
+`orientation`, `permutation`, `dual`, `perfect`. Limits: `--max-depth`, `--max-expanded`,
+`--timeout`. Exit codes: `0` solved, `2` invalid input, `3` no solution within limits.
 
-Otherwise the program will default to `astardual`. If the program is called with `astarperfect` it will load the perfect heuristic lookup table, which may take a few seconds.
+As a library:
 
-A few examples of running the program with `solve`:
+```rust
+use gpss_core::search::{IdaStar, SearchLimits};
+use gpss_puzzles::cube::parse_sequence;
+use gpss_puzzles::cube2::{Cube2, Cube2Heuristic};
 
-    ./CubeSolver solve --scramble "F2 U R' U F U' F2 R2 F'"                    # Uses astardual
-    ./CubeSolver solve --scramble "R' U2 F' R2 F' U' R2 U2 R'" --solver bfs
-    ./CubeSolver solve --scramble "U R' F' R2 F' U F U' F" --solver astarori
-    ./CubeSolver solve --scramble "F U2 R' F U2 F U R' U'" --solver astarperf  # Uses the perfect heuristic. Will load the lookup table into memory.
+let cube = Cube2::new();
+let solver = IdaStar::new(Cube2Heuristic::Dual.build(&cube));
+let scramble = parse_sequence("R U2 F' R2 U F2 R' U' F R2 U")?;
+let solution = cube.solve_scramble(&scramble, &solver, &SearchLimits::default())?;
+assert!(solution.optimal);
+```
 
-The other modes are used for the analysis in the "Results" section.
+## Design in one paragraph
 
-## Results
+`gpss-core` defines three traits and knows nothing else: a [`Puzzle`](crates/gpss-core/src/puzzle.rs)
+is an implicit graph (states, puzzle-defined moves, `apply`, `inverse`, optional move
+pruning); a [`Heuristic<P>`](crates/gpss-core/src/heuristic.rs) estimates distance to the
+goal, one state or a whole batch at a time (so a neural network fits the same slot as a
+lookup table); a [`Solver<P>`](crates/gpss-core/src/search/mod.rs) returns moves, search
+statistics and whether the result is provably optimal. Pattern databases turn any
+`Coordinate` of a puzzle into an admissible heuristic. Concrete puzzles live in
+`gpss-puzzles`. Details: [`docs/architecture.md`](docs/architecture.md) and the
+[decision records](docs/decisions/).
 
-### Performance
+## Performance (2x2x2, median search time per solve)
 
-Performance was assessed by generating a 250 random scrambles of 15 moves in length. During scramble generation, sequences of moves that self-inverted were disallowed. Recall that at a maximum, a 2x2x2 Rubik's Cube is solvable in 11 moves. Scrambling in this kind of way makes it likely that the scramble falls on the upper end of the spectrum of difficulty. For all 250 scrambles, we ran all five solvers and recorded the time it took to solve each scramble with each solver. We were limited to 250 scrambles due to how long it took to run the BFS solver -- any of the A* solvers could solve all possible configurations in a shorter amount of time than it took BFS to solve 250.
+| optimal depth | legacy C++ A* (dual) | Rust A* (dual) | Rust IDA* (dual) |
+|---:|---:|---:|---:|
+| 8  | 12.0 ms  | 0.3 ms  | 0.1 ms |
+| 11 (God's number) | 730 ms | 20.6 ms | 4.6 ms |
 
-Overall, the A* solvers were significantly faster than our baseline BFS, even though analysis in the next section shows that our heuristic is not very tight. Over the 250 scrambles, which had a median solution length of 8 moves, our dual heuristic finished in an average of 0.088 seconds and BFS finished in an average of 43.09 seconds. Here are some more detailed summary statistics:
+The legacy build is unoptimised, as in the original project. Methodology, memory numbers
+and caveats: [`docs/benchmarks/cube2-baseline.md`](docs/benchmarks/cube2-baseline.md).
 
-    Solution Lengths:
-    count    250.00000
-    mean       8.18800
-    std        1.31131
-    min        4.00000
-    25%        8.00000
-    50%        8.00000
-    75%        9.00000
-    max       10.00000
-    Name: Length, dtype: float64
+## Testing
 
-    Perfect Heuristic:
-    count    250.000000
-    mean       0.014211
-    std        0.017898
-    min        0.000859
-    25%        0.003898
-    50%        0.009355
-    75%        0.015892
-    max        0.131464
-    Name: Perf, dtype: float64
+```bash
+cargo test --release                                                   # unit + property tests
+python3 conformance/harness.py --impl gpss --solver idastar --heuristic dual   # black-box corpus
+python3 conformance/harness.py --impl legacy-cpp --solver astardual            # the original C++
+```
 
-    Dual Heuristic
-    count    250.000000
-    mean       0.087805
-    std        0.126078
-    min        0.000228
-    25%        0.013072
-    50%        0.035450
-    75%        0.107881
-    max        0.738483
-    Name: Dual, dtype: float64
+The conformance corpus is generated by an exhaustive search of all 3,674,160 2x2x2
+positions using an independent sticker-level model, and checked against the published
+depth distribution. See [`docs/testing.md`](docs/testing.md).
 
-    Orientation Heuristic
-    count    250.000000
-    mean       0.395665
-    std        0.470991
-    min        0.000235
-    25%        0.055321
-    50%        0.201744
-    75%        0.594892
-    max        2.632570
-    Name: Ori, dtype: float64
+## Documentation
 
-    Permutation Heuristic
-    count    250.000000
-    mean       0.275673
-    std        0.358965
-    min        0.000202
-    25%        0.039835
-    50%        0.129987
-    75%        0.410974
-    max        2.381560
-    Name: Perm, dtype: float64
+| | |
+|-|-|
+| [`AGENTS.md`](AGENTS.md) | Start here if you are an AI agent (or a human who likes checklists): commands, invariants, conventions |
+| [`docs/architecture.md`](docs/architecture.md) | Crates, traits, request flow, extension points |
+| [`docs/decisions/`](docs/decisions/) | Why things are the way they are (ADRs) |
+| [`docs/theory/`](docs/theory/) | Search algorithms, pattern databases, the 2x2x2, Korf, Kociemba, DeepCubeA |
+| [`docs/testing.md`](docs/testing.md) | Test layers, corpus tags, CI vs benchmarks |
+| [`docs/migration.md`](docs/migration.md) | The C++ -> Rust migration and how it was verified |
+| [`docs/roadmap.md`](docs/roadmap.md) | What's next and the long-term vision |
+| [`docs/references.md`](docs/references.md) | Academic work this builds on |
 
-    BFS
-    count    250.000000
-    mean      43.094818
-    std       32.993968
-    min        0.048749
-    25%       12.488925
-    50%       36.942350
-    75%       69.613050
-    max      113.391000
-    Name: BFS, dtype: float64
+## Acknowledgements and references
 
-Here are some line plots visualizing the performance of the various solvers. We include a line plot without BFS because of the scale of the y-axis.
+This project stands on published research; full citations are in
+[`docs/references.md`](docs/references.md).
 
-![Times (all)](times_full.png)
-![Times (w/o BFS))](times_nobfs.png)
+- **DeepCubeA** - F. Agostinelli, S. McAleer, A. Shmakov, P. Baldi. *Solving the Rubik's
+  cube with deep reinforcement learning and search.* Nature Machine Intelligence 1,
+  356-363 (2019). The blueprint for the learned solver.
+- **IDA\*** - R. E. Korf. *Depth-first iterative-deepening: An optimal admissible tree
+  search.* Artificial Intelligence 27(1), 97-109 (1985).
+- **Optimal Rubik's Cube solving with pattern databases** - R. E. Korf. *Finding Optimal
+  Solutions to Rubik's Cube Using Pattern Databases.* AAAI-97 (1997).
+- **Pattern databases** - J. C. Culberson, J. Schaeffer. *Pattern Databases.*
+  Computational Intelligence 14(3), 318-334 (1998).
+- **Two-phase algorithm** - H. Kociemba, [kociemba.org](http://kociemba.org/cube.htm);
+  also the cubie and coordinate conventions used here.
+- **A\*** - Hart, Nilsson, Raphael (1968); **weighted A\*** - Pohl (1970).
 
-Also, we tested the performance of each of the agents on a single maximally scrambled configuration (solution length of 11). A maximally scrambled configuration did not emerge in the random sample since maximally scrambled configurations are rare in space of all possible configurations. The main point of comparison is A* with the dual heuristic solved the cube in ~2.22 seconds while BFS took ~108.81 seconds. Full program output below:
+## License
 
-    Solving with A* using dual heuristic...
-    Scramble: F R U' R' U' R U R' F' R U R' U' R' F R F'
-    Solution: R F' U' R' U2 R' U R F' U F2
-    Solution Length: 11 moves
-    Time: 2.216819 seconds
-
-    Solving with A* using perfect heuristic...
-    Scramble: F R U' R' U' R U R' F' R U R' U' R' F R F'
-    Solution: R U' R' U' F2 U' R U R' U F2
-    Solution Length: 11 moves
-    Time: 0.365550 seconds
-
-    Solving with A* using orientation heuristic...
-    Scramble: F R U' R' U' R U R' F' R U R' U' R' F R F'
-    Solution: F' U R' F' U F2 U R F U' R2
-    Solution Length: 11 moves
-    Time: 7.676933 seconds
-
-    Solving with A* using permutation heuristic...
-    Scramble: F R U' R' U' R U R' F' R U R' U' R' F R F'
-    Solution: F2 U' F U R U2 R U' R' F R'
-    Solution Length: 11 moves
-    Time: 2.907306 seconds
-
-    Solving with BFS...
-    Scramble: F R U' R' U' R U R' F' R U R' U' R' F R F'
-    Solution: F' U F U R2 U F' U' F U' R2
-    Solution Length: 11 moves
-    Time: 108.812033 seconds
-
-### Tightness
-
-Since the 2x2x2 state space is small (~3.67 million states), we can compute the exact length of the optimal solution for each scramble. We can then compare the heuristic value to the optimal solution length. Doing so for all three heuristics, we find that the permutation heuristic is in general better than the orientation heuristic, and the dual heuristic is better than both. 
-
-Some summary statistics:
-
-    Orientation Heuristic:
-    count    3.674160e+06
-    mean     4.319363e+00
-    std      1.175741e+00
-    min      0.000000e+00
-    25%      4.000000e+00
-    50%      4.000000e+00
-    75%      5.000000e+00
-    max      1.100000e+01
-    Name: Orientation Difference, dtype: float64
-
-    Permutation Heuristic:
-    count    3.674160e+06
-    mean     3.893672e+00
-    std      1.210182e+00
-    min      0.000000e+00
-    25%      3.000000e+00
-    50%      4.000000e+00
-    75%      5.000000e+00
-    max      1.100000e+01
-    Name: Permutation Difference, dtype: float64
-
-    Dual Heuristic:
-    count    3.674160e+06
-    mean     3.611235e+00
-    std      1.045923e+00
-    min      0.000000e+00
-    25%      3.000000e+00
-    50%      4.000000e+00
-    75%      4.000000e+00
-    max      8.000000e+00
-    Name: Dual Difference, dtype: float64
-
-And here are some histograms of the heuristic values compared to the optimal solution length:
-
-![Orientation Heuristic](ori.png)
-
-![Permutation Heuristic](perm.png)
-
-![Dual Heuristic](dual.png)
-
-![Combined](combined.png)
-
-## Contributors
-
-Fyze Tulyag and Richie Hsiung, Computation Intelligence for Games, Spring 2024, taught by Professor James Glenn.
+MIT - see [`LICENSE`](LICENSE). `legacy/cpp/argparse.h` is by p-ranav (MIT).

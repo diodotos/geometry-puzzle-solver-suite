@@ -1,0 +1,12 @@
+{
+  "legacy-cpp": {
+    "edge-empty": "CLI refuses an empty scramble ('Scramble must be provided') instead of treating it as the identity",
+    "edge-extra-whitespace": "move parser splits on single spaces, so repeated whitespace yields an empty token and an uncaught std::invalid_argument",
+    "edge-invalid-X": "invalid input throws std::invalid_argument outside the CLI's catch block and aborts (SIGABRT)",
+    "edge-invalid-R3": "invalid input throws std::invalid_argument outside the CLI's catch block and aborts (SIGABRT)",
+    "edge-invalid-r": "invalid input throws std::invalid_argument outside the CLI's catch block and aborts (SIGABRT)",
+    "edge-invalid-U4": "invalid input throws std::invalid_argument outside the CLI's catch block and aborts (SIGABRT)",
+    "edge-invalid-RcommaU": "invalid input throws std::invalid_argument outside the CLI's catch block and aborts (SIGABRT)",
+    "edge-invalid-Rw": "invalid input throws std::invalid_argument outside the CLI's catch block and aborts (SIGABRT)"
+  }
+}

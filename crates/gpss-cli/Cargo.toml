@@ -1,0 +1,20 @@
+[package]
+name = "gpss-cli"
+description = "Command-line interface for the geometry puzzle solver suite."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "gpss"
+path = "src/main.rs"
+
+[dependencies]
+gpss-core.workspace = true
+gpss-puzzles.workspace = true
+clap.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true

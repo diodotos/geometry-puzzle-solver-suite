@@ -1,0 +1,8 @@
+/target/
+*.o
+legacy/cpp/CubeSolver
+__pycache__/
+*.pyc
+/conformance/reports/
+/training/.venv/
+/training/runs/

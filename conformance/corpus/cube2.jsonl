@@ -1,0 +1,233 @@
+{"id": "depth01-00", "puzzle": "cube2", "scramble": "U'", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-01", "puzzle": "cube2", "scramble": "R2", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-02", "puzzle": "cube2", "scramble": "U", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-03", "puzzle": "cube2", "scramble": "D", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-04", "puzzle": "cube2", "scramble": "R2", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-05", "puzzle": "cube2", "scramble": "F'", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-06", "puzzle": "cube2", "scramble": "F'", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-07", "puzzle": "cube2", "scramble": "B2", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth01-08", "puzzle": "cube2", "scramble": "F", "expect": "solve", "tags": ["depth", "d1", "short"], "optimal_length": 1}
+{"id": "depth02-00", "puzzle": "cube2", "scramble": "U F'", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-01", "puzzle": "cube2", "scramble": "L F'", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-02", "puzzle": "cube2", "scramble": "U' F'", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-03", "puzzle": "cube2", "scramble": "F L", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-04", "puzzle": "cube2", "scramble": "R U2", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-05", "puzzle": "cube2", "scramble": "B' R2", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-06", "puzzle": "cube2", "scramble": "F R2", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-07", "puzzle": "cube2", "scramble": "U' L2", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-08", "puzzle": "cube2", "scramble": "R' U'", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-09", "puzzle": "cube2", "scramble": "U F'", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-10", "puzzle": "cube2", "scramble": "U2 F", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-11", "puzzle": "cube2", "scramble": "R B2", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-12", "puzzle": "cube2", "scramble": "U' R'", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-13", "puzzle": "cube2", "scramble": "U R2", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth02-14", "puzzle": "cube2", "scramble": "F2 U", "expect": "solve", "tags": ["depth", "d2", "short"], "optimal_length": 2}
+{"id": "depth03-00", "puzzle": "cube2", "scramble": "R2 U2 F'", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-01", "puzzle": "cube2", "scramble": "U' L U", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-02", "puzzle": "cube2", "scramble": "F R' U", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-03", "puzzle": "cube2", "scramble": "U2 L' U2", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-04", "puzzle": "cube2", "scramble": "R' U' F", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-05", "puzzle": "cube2", "scramble": "D2 L F'", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-06", "puzzle": "cube2", "scramble": "U2 F' U2", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-07", "puzzle": "cube2", "scramble": "L' B' D2", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-08", "puzzle": "cube2", "scramble": "R' F R", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-09", "puzzle": "cube2", "scramble": "R2 U R'", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-10", "puzzle": "cube2", "scramble": "F2 U2 R'", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-11", "puzzle": "cube2", "scramble": "D' R' D2", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-12", "puzzle": "cube2", "scramble": "U2 R' U", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-13", "puzzle": "cube2", "scramble": "U' B2 L'", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth03-14", "puzzle": "cube2", "scramble": "F' U F'", "expect": "solve", "tags": ["depth", "d3", "short"], "optimal_length": 3}
+{"id": "depth04-00", "puzzle": "cube2", "scramble": "R F2 R' F", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-01", "puzzle": "cube2", "scramble": "F' R U' F", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-02", "puzzle": "cube2", "scramble": "U' F U2 R", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-03", "puzzle": "cube2", "scramble": "B2 R' U2 R2", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-04", "puzzle": "cube2", "scramble": "U R U F", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-05", "puzzle": "cube2", "scramble": "F' U F U'", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-06", "puzzle": "cube2", "scramble": "U R U2 R'", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-07", "puzzle": "cube2", "scramble": "U2 F' R U2", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-08", "puzzle": "cube2", "scramble": "R2 U F R'", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-09", "puzzle": "cube2", "scramble": "F R2 F' R", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-10", "puzzle": "cube2", "scramble": "R U' F2 R'", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-11", "puzzle": "cube2", "scramble": "U' R2 U' B", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-12", "puzzle": "cube2", "scramble": "F2 R' F2 U", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-13", "puzzle": "cube2", "scramble": "B2 U' L' U'", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth04-14", "puzzle": "cube2", "scramble": "R F' R2 U", "expect": "solve", "tags": ["depth", "d4", "short"], "optimal_length": 4}
+{"id": "depth05-00", "puzzle": "cube2", "scramble": "U2 F R' F R2", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-01", "puzzle": "cube2", "scramble": "F U' F U' R2", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-02", "puzzle": "cube2", "scramble": "R' U R U2 R2", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-03", "puzzle": "cube2", "scramble": "R' D R' F2 D", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-04", "puzzle": "cube2", "scramble": "U2 F U' F2 R2", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-05", "puzzle": "cube2", "scramble": "R D2 F' D' R", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-06", "puzzle": "cube2", "scramble": "F U2 R2 U F'", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-07", "puzzle": "cube2", "scramble": "L D' L D' F'", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-08", "puzzle": "cube2", "scramble": "R F2 R' F U2", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-09", "puzzle": "cube2", "scramble": "D F R' F2 D", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-10", "puzzle": "cube2", "scramble": "F' U' F2 U F'", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-11", "puzzle": "cube2", "scramble": "B' U2 B R' B'", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-12", "puzzle": "cube2", "scramble": "R F2 U R' U'", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-13", "puzzle": "cube2", "scramble": "R' B U2 R' U'", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth05-14", "puzzle": "cube2", "scramble": "F U' R' F' R", "expect": "solve", "tags": ["depth", "d5", "short"], "optimal_length": 5}
+{"id": "depth06-00", "puzzle": "cube2", "scramble": "U' R2 U' F' U F2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-01", "puzzle": "cube2", "scramble": "U B L' U2 L' B", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-02", "puzzle": "cube2", "scramble": "U2 F2 U' F2 R' U'", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-03", "puzzle": "cube2", "scramble": "L2 B U2 B L' B'", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-04", "puzzle": "cube2", "scramble": "R U2 R U' F R'", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-05", "puzzle": "cube2", "scramble": "R2 B' R2 D' B' D2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-06", "puzzle": "cube2", "scramble": "U R F' U2 R U'", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-07", "puzzle": "cube2", "scramble": "D2 B D L2 B' D2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-08", "puzzle": "cube2", "scramble": "U' R' U' R2 U' R2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-09", "puzzle": "cube2", "scramble": "U2 B' R U2 B U2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-10", "puzzle": "cube2", "scramble": "U2 F2 U F' R2 F2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-11", "puzzle": "cube2", "scramble": "L2 F2 U' L U L", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-12", "puzzle": "cube2", "scramble": "R U R U' F' U'", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-13", "puzzle": "cube2", "scramble": "B R B R2 B U2", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth06-14", "puzzle": "cube2", "scramble": "F2 R' F2 R F U", "expect": "solve", "tags": ["depth", "d6", "mid"], "optimal_length": 6}
+{"id": "depth07-00", "puzzle": "cube2", "scramble": "U' F U2 F' U2 R' U'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-01", "puzzle": "cube2", "scramble": "D' R D2 R F R2 D'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-02", "puzzle": "cube2", "scramble": "F' R' F2 R2 U F' R", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-03", "puzzle": "cube2", "scramble": "U2 L2 U F2 U F2 L'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-04", "puzzle": "cube2", "scramble": "R' F2 R2 F' U' F2 R", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-05", "puzzle": "cube2", "scramble": "R2 B' D R' B' R D", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-06", "puzzle": "cube2", "scramble": "F' R F' R' F' U R2", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-07", "puzzle": "cube2", "scramble": "L U2 F L2 F L2 U'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-08", "puzzle": "cube2", "scramble": "U2 F R' F U R F'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-09", "puzzle": "cube2", "scramble": "U' B2 U B' R' U' B2", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-10", "puzzle": "cube2", "scramble": "U' R2 U R F2 U2 R", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-11", "puzzle": "cube2", "scramble": "U' F2 R' U R2 F U2", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-12", "puzzle": "cube2", "scramble": "U' R' F R' F2 R' F'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-13", "puzzle": "cube2", "scramble": "L B' D2 L B' L2 D'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth07-14", "puzzle": "cube2", "scramble": "U2 F' U R F' U2 F'", "expect": "solve", "tags": ["depth", "d7", "mid"], "optimal_length": 7}
+{"id": "depth08-00", "puzzle": "cube2", "scramble": "F R2 F' U F2 U F U2", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-01", "puzzle": "cube2", "scramble": "B U' R B R' U2 R2 B'", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-02", "puzzle": "cube2", "scramble": "U2 R U' R2 F2 U R F", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-03", "puzzle": "cube2", "scramble": "D B' R D' R' B2 R' B", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-04", "puzzle": "cube2", "scramble": "F2 R2 U' R U F' U2 R", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-05", "puzzle": "cube2", "scramble": "F L' U' F2 U' F U' L", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-06", "puzzle": "cube2", "scramble": "R' U2 F R' F' R U' F'", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-07", "puzzle": "cube2", "scramble": "D' F2 L F' D' L' D F'", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-08", "puzzle": "cube2", "scramble": "R' U' F2 U2 R F' U F2", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-09", "puzzle": "cube2", "scramble": "U2 L' U' L U' F' U L", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-10", "puzzle": "cube2", "scramble": "U R' F2 R' F' R F' R", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-11", "puzzle": "cube2", "scramble": "D R2 F2 D' R D' R D'", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-12", "puzzle": "cube2", "scramble": "R U' F R2 F' U' R2 F2", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-13", "puzzle": "cube2", "scramble": "U' B U2 R2 B R' B2 R", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth08-14", "puzzle": "cube2", "scramble": "U R U2 F2 U' R U' R", "expect": "solve", "tags": ["depth", "d8", "mid"], "optimal_length": 8}
+{"id": "depth09-00", "puzzle": "cube2", "scramble": "U2 F R' F2 U F R' F U'", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-01", "puzzle": "cube2", "scramble": "D L D' F D2 L2 F D' F", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-02", "puzzle": "cube2", "scramble": "R U' R F' R F R2 U2 F'", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-03", "puzzle": "cube2", "scramble": "L D L' B L B D L2 D2", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-04", "puzzle": "cube2", "scramble": "R2 F' R U' F' U2 R2 F U", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-05", "puzzle": "cube2", "scramble": "U' L U2 L' F2 L2 F' L' U", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-06", "puzzle": "cube2", "scramble": "U F U' R' U2 R2 U' R U2", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-07", "puzzle": "cube2", "scramble": "B2 R2 D B' R B' R B2 R", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-08", "puzzle": "cube2", "scramble": "R U2 R' F U' R F' U' F", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-09", "puzzle": "cube2", "scramble": "U2 F U R2 F' U R U' R2", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-10", "puzzle": "cube2", "scramble": "R F2 R F R' F U' R F", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-11", "puzzle": "cube2", "scramble": "U L2 U B2 L2 U' L' B L", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-12", "puzzle": "cube2", "scramble": "F2 U2 F U' R U F2 R2 U", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-13", "puzzle": "cube2", "scramble": "F2 R2 D F D2 F D' R D", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth09-14", "puzzle": "cube2", "scramble": "F U' R' F2 U R' U2 R U2", "expect": "solve", "tags": ["depth", "d9", "mid"], "optimal_length": 9}
+{"id": "depth10-00", "puzzle": "cube2", "scramble": "U F' U' R2 F2 U F R F' R2", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-01", "puzzle": "cube2", "scramble": "F2 D F' D F2 R' F' R' D' R2", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-02", "puzzle": "cube2", "scramble": "U R' U R2 F' U R F' R U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-03", "puzzle": "cube2", "scramble": "U2 F2 U R U' R U2 R' U2 R2", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-04", "puzzle": "cube2", "scramble": "U R' U F' R2 U R' U' F' U2", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-05", "puzzle": "cube2", "scramble": "B' R U R U2 B' U B R B'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-06", "puzzle": "cube2", "scramble": "R' F R' U R' U F U' R U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-07", "puzzle": "cube2", "scramble": "L' U' L2 U L' B2 L' U L' U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-08", "puzzle": "cube2", "scramble": "R' F R' F' R2 U2 R' U2 R' U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-09", "puzzle": "cube2", "scramble": "L' B' L D B2 L2 D' B D B'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-10", "puzzle": "cube2", "scramble": "F R' F2 U' F U2 R' U R2 U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-11", "puzzle": "cube2", "scramble": "U R2 F R' U2 R U2 F' R' F2", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-12", "puzzle": "cube2", "scramble": "R2 F' R2 F' R F2 R U' F2 U2", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-13", "puzzle": "cube2", "scramble": "L2 F2 U' F' U2 F2 L' U' L2 U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth10-14", "puzzle": "cube2", "scramble": "F2 R F2 U2 R' F R' F R2 U'", "expect": "solve", "tags": ["depth", "d10", "top"], "optimal_length": 10}
+{"id": "depth11-00", "puzzle": "cube2", "scramble": "R' F R2 U2 R' F' U' F U2 R' U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-01", "puzzle": "cube2", "scramble": "R2 B U' B R2 U R' U B2 U2 R2", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-02", "puzzle": "cube2", "scramble": "F2 U2 F U F2 U F2 R2 U R2 U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-03", "puzzle": "cube2", "scramble": "R2 D' R D' R D' R F' R2 F2 R'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-04", "puzzle": "cube2", "scramble": "F' U F' U2 R F' R' U2 F2 R2 U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-05", "puzzle": "cube2", "scramble": "R D2 R' F R' F D2 F2 R2 D' R'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-06", "puzzle": "cube2", "scramble": "U2 F2 U' R' F2 U R F2 U R' U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-07", "puzzle": "cube2", "scramble": "U2 R U2 R2 U' R B' R B' R B'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-08", "puzzle": "cube2", "scramble": "F R U2 R U2 F R U' F R' U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-09", "puzzle": "cube2", "scramble": "U F U' F U' R' U2 F2 R2 U' R'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-10", "puzzle": "cube2", "scramble": "U2 R' F U R' U R2 U' F R' U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-11", "puzzle": "cube2", "scramble": "L' F' L' D2 L2 D' L D' L D' F'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-12", "puzzle": "cube2", "scramble": "F2 R' U' R2 U2 F' U' F U' R2 U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-13", "puzzle": "cube2", "scramble": "R2 B' U' B U2 R' U' B U' R' B'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "depth11-14", "puzzle": "cube2", "scramble": "U' R2 U R2 U' R U' F U2 F' U'", "expect": "solve", "tags": ["depth", "d11", "top"], "optimal_length": 11}
+{"id": "random-00", "puzzle": "cube2", "scramble": "D2 F' R B2 D B2 R' D B D' B", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-01", "puzzle": "cube2", "scramble": "R' F2 U'", "expect": "solve", "tags": ["random"], "optimal_length": 3}
+{"id": "random-02", "puzzle": "cube2", "scramble": "B D' L D F' D2 F2 L' B2 L' U' D L' D' F' L2 R B' L2 R L2 F' U R2 U2 R' U' L2 R' B'", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-03", "puzzle": "cube2", "scramble": "B' F' B' F2 D'", "expect": "solve", "tags": ["random"], "optimal_length": 2}
+{"id": "random-04", "puzzle": "cube2", "scramble": "B", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-05", "puzzle": "cube2", "scramble": "D' R2 D2 F R' B' F2 D U2 R' D2 R D2 B R L' F2 U2 F' R D L2 D U2 B2", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-06", "puzzle": "cube2", "scramble": "U' B' D' L R B' D2 L2 D' R L'", "expect": "solve", "tags": ["random"], "optimal_length": 7}
+{"id": "random-07", "puzzle": "cube2", "scramble": "U2 R2 B2 U2 L' B2 F' L' D' F U B' D R U D U2 F R' D R D2 U' D' R", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-08", "puzzle": "cube2", "scramble": "F B' L2 D' R F2 D' U2 F2 L R", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-09", "puzzle": "cube2", "scramble": "U' R2 U' R U F' L R L2 B' U'", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-10", "puzzle": "cube2", "scramble": "L2 B2 R D' R L R2 L' R' L2 R2 L2 B' U' D'", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-11", "puzzle": "cube2", "scramble": "L F D F2 U' F B D", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-12", "puzzle": "cube2", "scramble": "L2 D' B' D' L2 F' D' B R B2 U' L' B2 U2 F' B2 R B' L2 D2 B' U2 B2 F B D F2 L' U L'", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-13", "puzzle": "cube2", "scramble": "D2 F' D R U' B L' D' R' F U2 L B2 F' D' F2 R2 F2 L B' U L2 R' F U'", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-14", "puzzle": "cube2", "scramble": "B U R", "expect": "solve", "tags": ["random"], "optimal_length": 3}
+{"id": "random-15", "puzzle": "cube2", "scramble": "U' R' F' B' D L U2 D2 F U' B'", "expect": "solve", "tags": ["random"], "optimal_length": 5}
+{"id": "random-16", "puzzle": "cube2", "scramble": "F2 L' R2 F D' U F' D' R2 F2 R L' U F D B' L D2 L U'", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-17", "puzzle": "cube2", "scramble": "F", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-18", "puzzle": "cube2", "scramble": "D' R' U' F B D2 L' R' B2 U' R2", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-19", "puzzle": "cube2", "scramble": "F2 L U D' B2 R' B' U' B' F2 R L' R' L2 R", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-20", "puzzle": "cube2", "scramble": "R' D' U F' D F' U2 D2 L2 B U2 R2 U B L", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-21", "puzzle": "cube2", "scramble": "D B' U' R U L' U' D2 L' B L B R' L U D U L2 U' R' L' B D2 L D2", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-22", "puzzle": "cube2", "scramble": "R L D' B R U2 B2 D' U2 D' U' B2 U D2 R2 F2 U D' B L2 F L R2 U R2", "expect": "solve", "tags": ["random"], "optimal_length": 10}
+{"id": "random-23", "puzzle": "cube2", "scramble": "B U2 F D2 B2 D2 U' L R' B' D2 B D2 R U' L2 U2 B2 D' F2 B' U2 L F' L2 U2 L2 D U L'", "expect": "solve", "tags": ["random"], "optimal_length": 10}
+{"id": "random-24", "puzzle": "cube2", "scramble": "D U R U2 D' R U R' U D B", "expect": "solve", "tags": ["random"], "optimal_length": 7}
+{"id": "random-25", "puzzle": "cube2", "scramble": "L2 F L2 U' B2", "expect": "solve", "tags": ["random"], "optimal_length": 5}
+{"id": "random-26", "puzzle": "cube2", "scramble": "F' D L2 U2 R' U2 R2 U F' R F D R' L U2 R2 U2 D2 F2 R2", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-27", "puzzle": "cube2", "scramble": "B U' F' D' F2 L' B2 L' B' F R B2 U2 B2 U", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-28", "puzzle": "cube2", "scramble": "D L' B2 F U2 R L F'", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-29", "puzzle": "cube2", "scramble": "L' B2 D2 R2 L' D2 L' F L F R2 D R' B D' R2 D U2 F D R2 D2 U2 L' D2", "expect": "solve", "tags": ["random"], "optimal_length": 10}
+{"id": "random-30", "puzzle": "cube2", "scramble": "R", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-31", "puzzle": "cube2", "scramble": "D2", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-32", "puzzle": "cube2", "scramble": "R2 U' D' F2 R D2 R' F2 B U' R U2 D2 L F2 R2 L' U B' L' U' D' B2 U F' U F2 U' L' F'", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-33", "puzzle": "cube2", "scramble": "U2", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-34", "puzzle": "cube2", "scramble": "R' D'", "expect": "solve", "tags": ["random"], "optimal_length": 2}
+{"id": "random-35", "puzzle": "cube2", "scramble": "B U B U2 R U' L' D", "expect": "solve", "tags": ["random"], "optimal_length": 7}
+{"id": "random-36", "puzzle": "cube2", "scramble": "U2 R F2 U D2 L' B2 U' R2 F' U' D' U2 R' L' F' R' B D L2 B2 R' D2 B L", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-37", "puzzle": "cube2", "scramble": "B' U' B2 R2 B2 D' B2 R'", "expect": "solve", "tags": ["random"], "optimal_length": 3}
+{"id": "random-38", "puzzle": "cube2", "scramble": "F2 U", "expect": "solve", "tags": ["random"], "optimal_length": 2}
+{"id": "random-39", "puzzle": "cube2", "scramble": "U L' F' L' U R2 D2 L R' D B2 U2 F' U' F B R2 F' D L2 F D R2 L' R", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-40", "puzzle": "cube2", "scramble": "B' F' D' B U B' D L' B2 R U2 R' F L2 R2 D F' R2 L R' L' U2 F2 D L2", "expect": "solve", "tags": ["random"], "optimal_length": 10}
+{"id": "random-41", "puzzle": "cube2", "scramble": "F U' L U F", "expect": "solve", "tags": ["random"], "optimal_length": 5}
+{"id": "random-42", "puzzle": "cube2", "scramble": "U'", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-43", "puzzle": "cube2", "scramble": "D B L'", "expect": "solve", "tags": ["random"], "optimal_length": 3}
+{"id": "random-44", "puzzle": "cube2", "scramble": "U' D2 F' U' B F' U2 B2", "expect": "solve", "tags": ["random"], "optimal_length": 5}
+{"id": "random-45", "puzzle": "cube2", "scramble": "D' B'", "expect": "solve", "tags": ["random"], "optimal_length": 2}
+{"id": "random-46", "puzzle": "cube2", "scramble": "F L B' D' L2 U' R F B U2 R L R2 D' U' B2 R B L R U' R2 L2 D' F", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-47", "puzzle": "cube2", "scramble": "L' B2 U B2 R2 B L2 B' U' F' U2 R B' U' F", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-48", "puzzle": "cube2", "scramble": "R D2 L F' D B U' R' L B' U' L' D R U2 R L2 B F B' L F L D2 U2", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-49", "puzzle": "cube2", "scramble": "U' B L2 D' R' D2 U' L2", "expect": "solve", "tags": ["random"], "optimal_length": 7}
+{"id": "random-50", "puzzle": "cube2", "scramble": "U' F' R2 L' U R D2 F2 R L B2 R F2 U' L2 U2 L F R' F' U B' D F L2 R' U' D2 U L'", "expect": "solve", "tags": ["random"], "optimal_length": 9}
+{"id": "random-51", "puzzle": "cube2", "scramble": "F B2 L' D' F L D R' L' D2 B", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-52", "puzzle": "cube2", "scramble": "U B' L' B' R B R' D2", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-53", "puzzle": "cube2", "scramble": "R2 U D' U2 B' R' D U B D2 U R2 B F' L2", "expect": "solve", "tags": ["random"], "optimal_length": 8}
+{"id": "random-54", "puzzle": "cube2", "scramble": "B' D", "expect": "solve", "tags": ["random"], "optimal_length": 2}
+{"id": "random-55", "puzzle": "cube2", "scramble": "D L R' F' R'", "expect": "solve", "tags": ["random"], "optimal_length": 1}
+{"id": "random-56", "puzzle": "cube2", "scramble": "U2 L2 R2 U' R D B2 F2 U2 R2 L2 B' D2 R B'", "expect": "solve", "tags": ["random"], "optimal_length": 7}
+{"id": "random-57", "puzzle": "cube2", "scramble": "L' F' B'", "expect": "solve", "tags": ["random"], "optimal_length": 2}
+{"id": "random-58", "puzzle": "cube2", "scramble": "D B' L D F B2 D' R'", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "random-59", "puzzle": "cube2", "scramble": "D' B' F U' B U' R2 B' F U' B U' L2 U' L2 R' F L' F' L2", "expect": "solve", "tags": ["random"], "optimal_length": 6}
+{"id": "edge-empty", "puzzle": "cube2", "scramble": "", "expect": "solve", "tags": ["edge", "identity"], "optimal_length": 0}
+{"id": "edge-cancel-pair", "puzzle": "cube2", "scramble": "R R'", "expect": "solve", "tags": ["edge", "identity"], "optimal_length": 0}
+{"id": "edge-quarter-x4", "puzzle": "cube2", "scramble": "U U U U", "expect": "solve", "tags": ["edge", "identity"], "optimal_length": 0}
+{"id": "edge-sexy-x6", "puzzle": "cube2", "scramble": "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'", "expect": "solve", "tags": ["edge", "identity"], "optimal_length": 0}
+{"id": "edge-whole-cube-equivalent", "puzzle": "cube2", "scramble": "R L'", "expect": "solve", "tags": ["edge", "identity"], "optimal_length": 0}
+{"id": "edge-extra-whitespace", "puzzle": "cube2", "scramble": "  R   U  F'  ", "expect": "solve", "tags": ["edge", "whitespace"], "optimal_length": 3}
+{"id": "edge-long-200", "puzzle": "cube2", "scramble": "B2 U D L2 D' R U2 L' U' B' F' R L U' L' U' B' D2 F' D R L B2 U2 L2 D' L2 F' U' F L' B L' D B U' R' L' U2 L2 B' R' L' B' U2 F2 U' D L' R2 U2 R D L2 D L B2 D L D' R' L' F2 U2 R' B D B F' D' U F L2 F L' D2 B2 L' B F' R' F' B2 L' R2 U D' L' R' F' U' R U2 D2 L F2 U F2 B2 R L' D' U2 B R B F' D2 R2 B2 L2 D' F U' F U2 D' F' L' R2 B' L' F' L U' L B' D F' B U L B' D' F D2 U R' B F R2 L2 R L' D2 U D R2 L2 D2 R2 B' U F2 L F' R F2 R2 F L2 R L2 R' B2 L' U2 D2 L2 R2 D2 L F' L' D' L R F' R U2 R2 B' F U' F' D R2 F L D B2 R' F2 R F2 R' B' F D L", "expect": "solve", "tags": ["edge", "long"], "optimal_length": 10}
+{"id": "edge-all-18-moves", "puzzle": "cube2", "scramble": "U U' U2 D D' D2 R R' R2 L L' L2 F F' F2 B B' B2", "expect": "solve", "tags": ["edge"], "optimal_length": 0}
+{"id": "edge-invalid-X", "puzzle": "cube2", "scramble": "X", "expect": "reject", "tags": ["edge", "invalid"]}
+{"id": "edge-invalid-R3", "puzzle": "cube2", "scramble": "R3", "expect": "reject", "tags": ["edge", "invalid"]}
+{"id": "edge-invalid-r", "puzzle": "cube2", "scramble": "r", "expect": "reject", "tags": ["edge", "invalid"]}
+{"id": "edge-invalid-U4", "puzzle": "cube2", "scramble": "U4", "expect": "reject", "tags": ["edge", "invalid"]}
+{"id": "edge-invalid-RcommaU", "puzzle": "cube2", "scramble": "R,U", "expect": "reject", "tags": ["edge", "invalid"]}
+{"id": "edge-invalid-Rw", "puzzle": "cube2", "scramble": "Rw", "expect": "reject", "tags": ["edge", "invalid"]}

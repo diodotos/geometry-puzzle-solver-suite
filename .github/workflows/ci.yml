@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --release
+
+  conformance:
+    name: Conformance (Rust CLI vs reference model)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: cargo build --release -p gpss-cli
+      - name: IDA* + dual heuristic, full corpus
+        run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --heuristic dual
+      - name: A* + dual heuristic, full corpus
+        run: python3 conformance/harness.py --impl gpss --no-build --solver astar --heuristic dual
+      - name: BFS, depth <= 8
+        run: python3 conformance/harness.py --impl gpss --no-build --solver bfs --max-depth 8
+
+  legacy:
+    name: Legacy C++ baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build and run edge cases and short scrambles
+        run: python3 conformance/harness.py --impl legacy-cpp --solver astardual --max-depth 7
