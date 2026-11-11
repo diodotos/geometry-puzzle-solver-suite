@@ -1,4 +1,4 @@
-# 0007. Rust owns puzzle encodings; weights are pinned to them by a manifest
+# 0008. Rust owns puzzle encodings; weights are pinned to them by a manifest
 
 **Status:** Accepted
 

@@ -1,4 +1,4 @@
-# 0008. Training launchers: estimate, plan, confirm; provider CLIs, no stored credentials
+# 0009. Training launchers: estimate, plan, confirm; provider CLIs, no stored credentials
 
 **Status:** Accepted
 

@@ -3,7 +3,7 @@
 //! metric), and the solver configurations the CLI exposes.
 
 use gpss_core::pdb::PatternDatabase;
-use gpss_core::search::{AStar, Bfs, IdaStar};
+use gpss_core::search::{AStar, BatchWeightedAStar, Bfs, IdaStar};
 use gpss_puzzles::cube::parse_sequence;
 use gpss_puzzles::cube2::{Cube2, Cube2Heuristic, FullCoord, OrientationCoord, PermutationCoord};
 
@@ -53,6 +53,25 @@ pub fn register(registry: &mut Registry) {
         SolverSpec::new("idastar-perfect", |c: &Cube2| {
             Box::new(IdaStar::new(Cube2Heuristic::Perfect.build(c)))
         }),
+        // Batch weighted A* (DeepCubeA's search) with the admissible dual heuristic:
+        // lambda = 1 is optimal; lambda = 0.5 is weighted A* with weight 1 / lambda = 2.
+        // The learned ONNX heuristic needs ONNX Runtime and is evaluated separately
+        // (`gpss evaluate`, docs/benchmarks/cube2-learned.md).
+        SolverSpec::new("bwas-dual-b50", |c: &Cube2| {
+            Box::new(BatchWeightedAStar::new(
+                Cube2Heuristic::Dual.build(c),
+                1.0,
+                50,
+            ))
+        }),
+        SolverSpec::new("bwas-dual-l0.5-b100", |c: &Cube2| {
+            Box::new(BatchWeightedAStar::new(
+                Cube2Heuristic::Dual.build(c),
+                0.5,
+                100,
+            ))
+        })
+        .max_ratio(2.0),
     ];
     registry.add(workload, solvers);
 }

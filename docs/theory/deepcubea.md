@@ -47,7 +47,7 @@ and settings).
 | BWAS | `gpss_core::search::BatchWeightedAStar<H>: Solver<P>` |
 | training data | `gpss scramble-data` (Rust, `gpss_learn::data`) consumed by `training/gpss_train/davi.py` |
 | DAVI + network | `training/gpss_train/{davi,model}.py` |
-| weights | `weights/<puzzle>/<name>.onnx` + `.json` manifest (encoding spec, SHA-256, arch, training config, evaluation; ADR 0007) |
+| weights | `weights/<puzzle>/<name>.onnx` + `.json` manifest (encoding spec, SHA-256, arch, training config, evaluation; ADR 0008) |
 | evaluation | `gpss evaluate` (`gpss_learn::eval`), exact against the full 2x2x2 distance table |
 
 ## Evaluation plan
@@ -61,4 +61,4 @@ pipeline cheaply on CPU before spending GPU time on the 3x3x3.
 
 The paper trained its 3x3x3 network on GPUs for about 36 hours (see paper for hardware).
 2x2x2 training is CPU-feasible (the shipped network: about two hours on 8 CPU cores, see
-the benchmark report). 3x3x3 training will use the AWS/GCP launchers (ADR 0008).
+the benchmark report). 3x3x3 training will use the AWS/GCP launchers (ADR 0009).

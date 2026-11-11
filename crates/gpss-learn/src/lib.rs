@@ -8,7 +8,7 @@
 //!   random backward scrambles, every one-move successor, and goal masks, already
 //!   encoded. The Python trainer (`training/`) consumes this format and never
 //!   re-implements a puzzle, so Rust stays the single source of truth for both the move
-//!   function and the state encoding (ADR 0007).
+//!   function and the state encoding (ADR 0008).
 //! * [`manifest`] reads and validates weight manifests: a JSON file next to each `.onnx`
 //!   network, pinning the puzzle, the exact [`gpss_core::EncodingSpec`] and the network's
 //!   SHA-256, so a network can never be loaded for the wrong puzzle or encoding.

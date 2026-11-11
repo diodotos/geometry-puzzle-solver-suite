@@ -9,7 +9,7 @@
 //!
 //! The [`EncodingSpec`] is the *identity* of an encoding. Training data, weight files and
 //! the inference code all carry it, and a weights file is refused unless its spec is
-//! exactly equal to the puzzle's (see ADR 0007). Whenever `encode` changes in any way
+//! exactly equal to the puzzle's (see ADR 0008). Whenever `encode` changes in any way
 //! that alters its output, bump [`EncodingSpec::version`].
 
 use crate::puzzle::Puzzle;

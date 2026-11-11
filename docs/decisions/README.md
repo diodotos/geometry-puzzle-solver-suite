@@ -16,5 +16,5 @@ mark superseded records as such.
 | [0005](0005-learned-heuristics-as-heuristics.md) | Learned models plug in as heuristics; PyTorch -> ONNX | Accepted |
 | [0006](0006-ci-vs-local-benchmarks.md) | CI checks correctness; benchmarks run on dedicated machines | Accepted |
 | [0007](0007-bench-suite.md) | One benchmark suite, driven by the conformance corpus, with counter baselines in CI | Accepted |
-| [0007](0007-rust-owns-learned-encodings.md) | Rust owns puzzle encodings; weights pinned by a manifest | Accepted |
-| [0008](0008-training-launchers.md) | Training launchers: estimate, plan, confirm; no stored credentials | Accepted |
+| [0008](0008-rust-owns-learned-encodings.md) | Rust owns puzzle encodings; weights pinned by a manifest | Accepted |
+| [0009](0009-training-launchers.md) | Training launchers: estimate, plan, confirm; no stored credentials | Accepted |

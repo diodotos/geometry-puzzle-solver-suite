@@ -82,7 +82,7 @@ distinguishes "no solution exists" from "a limit was hit" and carries stats eith
 ### `Encodable` (`gpss-core/src/encode.rs`, optional)
 
 `encoding() -> EncodingSpec` and `encode(&state, &mut [u8])`: a fixed-length categorical
-state encoding for learned heuristics. Rust is the only definition of it (ADR 0007).
+state encoding for learned heuristics. Rust is the only definition of it (ADR 0008).
 
 ## Learned solver
 

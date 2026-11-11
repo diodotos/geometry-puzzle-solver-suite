@@ -3,8 +3,8 @@
 How to train, export, ship and use a cost-to-go network for any puzzle that implements
 `Encodable`. Theory: [`theory/deepcubea.md`](theory/deepcubea.md). Decisions:
 [ADR 0005](decisions/0005-learned-heuristics-as-heuristics.md) (networks are heuristics),
-[ADR 0007](decisions/0007-rust-owns-learned-encodings.md) (encodings and weights format),
-[ADR 0008](decisions/0008-training-launchers.md) (cloud launchers).
+[ADR 0008](decisions/0008-rust-owns-learned-encodings.md) (encodings and weights format),
+[ADR 0009](decisions/0009-training-launchers.md) (cloud launchers).
 
 The method is due to Agostinelli, McAleer, Shmakov and Baldi, *Solving the Rubik's cube
 with deep reinforcement learning and search*, Nature Machine Intelligence 2019 [Ago19].
@@ -54,7 +54,7 @@ module directly from `training/` instead.
 
 ## How the encoding stays in sync
 
-Rust is the single source of truth (ADR 0007). Python never implements a puzzle:
+Rust is the single source of truth (ADR 0008). Python never implements a puzzle:
 
 1. `Encodable::encode` maps a state to `len` categorical features in `0..classes`
    (2x2x2: 8 corner slots, feature `3 * piece + twist`, 24 classes; key
@@ -191,7 +191,7 @@ python -m gpss_train launch gcp --bucket gs://b/gpss --extra project=my-proj \
     --budget-usd 5 --execute                                      # asks "yes" first
 ```
 
-All backends share one flow (ADR 0008): a cost/time **estimate**, the exact **plan**
+All backends share one flow (ADR 0009): a cost/time **estimate**, the exact **plan**
 (commands and VM bootstrap script), and a launch only with `--execute` plus an interactive
 `yes` (or `--yes`). Cloud launches also need `--budget-usd` and are refused when the
 estimate exceeds it. Each VM shuts itself down after `--max-hours` and is created so that

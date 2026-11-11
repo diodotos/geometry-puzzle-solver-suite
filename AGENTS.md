@@ -115,7 +115,7 @@ The harness needs only the Python 3.10+ standard library. `training/` needs the 
   `ci_max_depth`, non-optimal ones with `max_ratio` when a bound exists, and solvers with
   run-to-run varying node counts with `nondeterministic()`.
 - When you make a puzzle trainable: implement `Encodable` (Rust is the only definition of
-  the encoding; Python never re-implements puzzles, ADR 0007), add it to the CLI's
+  the encoding; Python never re-implements puzzles, ADR 0008), add it to the CLI's
   `scramble-data`/`solve`/`evaluate`, and add a preset in `training/gpss_train/davi.py`.
   Changing what `encode` outputs requires bumping `EncodingSpec::version`.
 - When you cite an algorithm, add it to [`docs/references.md`](docs/references.md).

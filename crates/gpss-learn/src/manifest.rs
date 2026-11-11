@@ -6,7 +6,7 @@
 //! and evaluation metadata. [`Manifest::load`] refuses a manifest whose network file has
 //! a different checksum, and [`Manifest::check_compatible`] refuses an encoding that is
 //! not *exactly* the puzzle's, so a 2x2x2 network can never silently be used on another
-//! puzzle, nor on the 2x2x2 after its encoding changed (ADR 0007).
+//! puzzle, nor on the 2x2x2 after its encoding changed (ADR 0008).
 //!
 //! The manifest is written by `training/gpss_train/export.py`; see `docs/training.md`.
 

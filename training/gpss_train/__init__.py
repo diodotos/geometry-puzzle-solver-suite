@@ -8,7 +8,7 @@ doi:10.1038/s42256-019-0070-z.
 
 Puzzles are never re-implemented here: training data (encoded states, their successors
 and goal masks) comes from the Rust binary (``gpss scramble-data``), so the move function
-and the state encoding have exactly one definition (ADR 0007).
+and the state encoding have exactly one definition (ADR 0008).
 
 Modules:
     data    - read the Rust data format; run ``gpss scramble-data``
