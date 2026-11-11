@@ -7,6 +7,7 @@
 
 pub mod cube2;
 pub mod cube3;
+pub mod cuboid;
 
 use crate::target::Registry;
 
@@ -14,4 +15,5 @@ use crate::target::Registry;
 pub fn register_all(registry: &mut Registry) {
     cube2::register(registry);
     cube3::register(registry);
+    cuboid::register(registry);
 }

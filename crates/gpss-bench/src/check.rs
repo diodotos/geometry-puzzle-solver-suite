@@ -15,14 +15,14 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::corpus::{self, Bucket, Corpus, CorpusError};
+use crate::corpus::{Bucket, Corpus, CorpusError};
 use crate::target::{BenchTarget, CaseCheck, Counters, Registry, Scope, SetupReport};
 
 /// Committed counters for one puzzle: `targets[target id][case id]`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Baseline {
     pub puzzle: String,
-    /// [`corpus::fingerprint`] of the corpus the counters were recorded on.
+    /// [`crate::corpus::fingerprint`] of the corpus the counters were recorded on.
     pub corpus_fingerprint: String,
     pub targets: BTreeMap<String, BTreeMap<String, Counters>>,
 }
@@ -363,7 +363,7 @@ pub fn check_puzzle_at(
     path: &Path,
     update: bool,
 ) -> Result<PuzzleCheck, CheckError> {
-    let corpus = corpus::load(puzzle)?;
+    let corpus = registry.corpus(puzzle)?;
     let baseline = load_baseline(path).map_err(CheckError::Baseline)?;
     let mut targets = Vec::new();
     for t in registry.targets_mut().iter_mut() {

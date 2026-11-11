@@ -148,6 +148,10 @@ Guidance for the planned puzzles and solvers:
   (or cache load) shows up under solver setup rather than the PDB table; in CI they come
   from the cache the `korf` ignored test writes earlier in the same job. Two-phase
   length vs optimal is visible as the mean length per bucket in the counter summary.
+- **Cuboids.** `cuboid.jsonl` holds several sizes, so `targets/cuboid.rs` registers one
+  workload per size (`cuboid-2x2x2`, `cuboid-3x3x2`, each with its own baseline) and uses
+  `Workload::corpus_subset("cuboid", size)` to keep that size's cases. Uninformed IDA*
+  runs with `max_depth(4)`. Add a size to `SIZES`, then run `check --update`.
 - **Learned solvers (`gpss-learn`).** They can register from their own crate without this
   crate depending on them: add a `register` function there and call it from a
   feature-gated line in `targets::register_all`, or build a `Registry` in a test or a

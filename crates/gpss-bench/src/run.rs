@@ -9,7 +9,7 @@ use std::time::Duration;
 use serde::Serialize;
 
 use crate::check::{self, BucketCounters};
-use crate::corpus::{self, Bucket, BucketScheme, CorpusError};
+use crate::corpus::{Bucket, BucketScheme, CorpusError};
 use crate::report::Machine;
 use crate::stats;
 use crate::target::{
@@ -190,7 +190,7 @@ pub fn run(registry: &mut Registry, options: &RunOptions) -> Result<SuiteReport,
     let mut corpora = BTreeMap::new();
     let mut workloads = Vec::new();
     for w in registry.workloads() {
-        let corpus = corpus::load(w.puzzle())?;
+        let corpus = w.corpus()?;
         eprintln!("[{}] pattern databases ...", w.puzzle());
         let tables = w.tables(options.table_budget);
         eprintln!("[{}] primitives ...", w.puzzle());

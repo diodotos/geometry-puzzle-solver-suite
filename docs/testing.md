@@ -82,4 +82,5 @@ two-phase on the whole corpus and Korf IDA* on every exact case (depth 7 or less
 `conformance/corpus/cuboid.jsonl` (126 cases, from `conformance/generate_cuboid.py`) covers
 2x2x2, 3x3x2, 2x2x3, 2x3x4, 3x3x3 and 4x4x4 under `--puzzle AxBxC`. Its exact lengths are
 single-layer-metric distances up to rotation, taken from a BFS ball in the reference model.
-CI runs IDA* on the whole file. See `docs/theory/cuboid.md`.
+CI runs IDA* on the whole file through the CLI harness; `gpss-bench` baselines IDA* on the
+2x2x2 and 3x3x2 cases of depth 4 or less. See `docs/theory/cuboid.md`.

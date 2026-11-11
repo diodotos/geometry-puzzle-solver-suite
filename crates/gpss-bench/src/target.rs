@@ -19,7 +19,7 @@ use gpss_core::{Heuristic, Puzzle};
 use serde::{Deserialize, Serialize};
 
 use crate::alloc::{self, HeapUsage};
-use crate::corpus::{Bucket, BucketScheme, Case, Expect};
+use crate::corpus::{self, Bucket, BucketScheme, Case, Corpus, CorpusError, Expect};
 use crate::stats;
 
 /// Turns a corpus scramble into the state a solver starts from (parse, apply, and any
@@ -36,6 +36,8 @@ pub type TableBuildFn<P> = Box<dyn Fn(&P) -> PatternDatabase>;
 pub struct Workload<P: Puzzle> {
     puzzle: P,
     corpus: String,
+    corpus_file: String,
+    case_puzzle: Option<String>,
     buckets: BucketScheme,
     start: StartFn<P>,
     heuristics: Vec<(String, HeuristicBuildFn<P>)>,
@@ -51,14 +53,27 @@ impl<P: Puzzle> Workload<P> {
         buckets: BucketScheme,
         start: impl Fn(&P, &str) -> Result<P::State, String> + 'static,
     ) -> Self {
+        let corpus = corpus.into();
         Self {
             puzzle,
-            corpus: corpus.into(),
+            corpus_file: corpus.clone(),
+            corpus,
+            case_puzzle: None,
             buckets,
             start: Box::new(start),
             heuristics: Vec::new(),
             tables: Vec::new(),
         }
+    }
+
+    /// Take cases from `conformance/corpus/<file>.jsonl` instead, keeping only those whose
+    /// `puzzle` field equals `puzzle` (for corpora shared by several puzzles, such as
+    /// `cuboid.jsonl`). The id given to [`Workload::new`] still names reports and the
+    /// baseline; the fingerprint covers the whole file.
+    pub fn corpus_subset(mut self, file: impl Into<String>, puzzle: impl Into<String>) -> Self {
+        self.corpus_file = file.into();
+        self.case_puzzle = Some(puzzle.into());
+        self
     }
 
     /// Register a heuristic whose per-call cost should be reported.
@@ -289,6 +304,8 @@ pub struct PrimitiveReport {
 /// A type-erased [`Workload`].
 pub trait BenchWorkload {
     fn puzzle(&self) -> &str;
+    /// Load this workload's cases (see [`Workload::corpus_subset`]).
+    fn corpus(&self) -> Result<Corpus, CorpusError>;
     fn buckets(&self) -> BucketScheme;
     /// Build each registered table at least once and until `budget` is spent.
     fn tables(&self, budget: Duration) -> Vec<TableReport>;
@@ -349,6 +366,14 @@ impl Registry {
         let targets = &self.targets;
         self.workloads
             .retain(|w| targets.iter().any(|t| t.puzzle() == w.puzzle()));
+    }
+
+    /// The corpus of the workload named `puzzle`, or `<puzzle>.jsonl` if none is registered.
+    pub fn corpus(&self, puzzle: &str) -> Result<Corpus, CorpusError> {
+        match self.workloads.iter().find(|w| w.puzzle() == puzzle) {
+            Some(w) => w.corpus(),
+            None => corpus::load(puzzle),
+        }
     }
 
     /// Distinct puzzles with at least one target, in registration order.
@@ -598,6 +623,16 @@ fn time_op(budget: Duration, mut f: impl FnMut() -> u64) -> (u64, f64) {
 impl<P: Puzzle> BenchWorkload for WorkloadHandle<P> {
     fn puzzle(&self) -> &str {
         &self.0.corpus
+    }
+
+    fn corpus(&self) -> Result<Corpus, CorpusError> {
+        let w = &self.0;
+        let mut corpus = corpus::load(&w.corpus_file)?;
+        corpus.puzzle = w.corpus.clone();
+        if let Some(p) = &w.case_puzzle {
+            corpus.cases.retain(|c| c.puzzle == *p);
+        }
+        Ok(corpus)
     }
 
     fn buckets(&self) -> BucketScheme {
