@@ -22,10 +22,12 @@
 //! See `docs/theory/kociemba-two-phase.md`.
 
 pub mod coord;
+pub mod korf;
 #[cfg(test)]
 mod tests;
 pub mod twophase;
 
+pub use korf::KorfHeuristic;
 pub use twophase::TwoPhase;
 
 use crate::cube::FaceTurn;

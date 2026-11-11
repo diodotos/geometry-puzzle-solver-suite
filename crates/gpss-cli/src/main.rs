@@ -18,10 +18,10 @@ use gpss_core::puzzle::format_moves;
 use gpss_core::search::{
     AStar, Bfs, IdaStar, SearchError, SearchLimits, SearchStats, Solution, Solver,
 };
-use gpss_core::ZeroHeuristic;
+use gpss_core::{Heuristic, ZeroHeuristic};
 use gpss_puzzles::cube::{parse_sequence, random_scramble, FaceTurn};
 use gpss_puzzles::cube2::{Cube2, Cube2Heuristic, FullCoord, OrientationCoord, PermutationCoord};
-use gpss_puzzles::cube3::{Cube3, TwoPhase};
+use gpss_puzzles::cube3::{Cube3, KorfHeuristic, TwoPhase};
 use rand::{rngs::StdRng, SeedableRng};
 use serde_json::json;
 
@@ -197,18 +197,19 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
             )
         }
         PuzzleKind::Cube3 => {
-            let h = req.heuristic.unwrap_or("zero");
-            if h != "zero" {
-                return unknown_heuristic(h);
-            }
+            let h = req.heuristic.unwrap_or("korf");
+            let heuristic: Box<dyn Heuristic<Cube3>> = match (req.solver, h) {
+                (SolverKind::Astar | SolverKind::Idastar, "korf") => Box::new(KorfHeuristic::new()),
+                (_, "zero") | (SolverKind::Bfs | SolverKind::Twophase, "korf") => {
+                    Box::new(ZeroHeuristic)
+                }
+                _ => return unknown_heuristic(h),
+            };
             let cube = Cube3::new();
             let (solver, h_name): (Box<dyn Solver<Cube3>>, Option<&str>) = match req.solver {
                 SolverKind::Bfs => (Box::new(Bfs), None),
-                SolverKind::Astar => (
-                    Box::new(AStar::weighted(ZeroHeuristic, req.weight)),
-                    Some(h),
-                ),
-                SolverKind::Idastar => (Box::new(IdaStar::new(ZeroHeuristic)), Some(h)),
+                SolverKind::Astar => (Box::new(AStar::weighted(heuristic, req.weight)), Some(h)),
+                SolverKind::Idastar => (Box::new(IdaStar::new(heuristic)), Some(h)),
                 SolverKind::Twophase => {
                     TwoPhase::warm_up();
                     (Box::new(TwoPhase::new(req.target_length)), None)

@@ -21,6 +21,8 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --release
+      - name: Korf pattern databases (build + optimal solves)
+        run: cargo test --release -p gpss-puzzles -- --ignored korf
 
   conformance:
     name: Conformance (Rust CLI vs reference model)
@@ -41,8 +43,10 @@ jobs:
         run: python3 conformance/harness.py --impl gpss --no-build --solver bfs --max-depth 8
       - name: 3x3x3 two-phase, full corpus
         run: python3 conformance/harness.py --impl gpss --no-build --solver twophase --corpus conformance/corpus/cube3.jsonl
+      - name: 3x3x3 IDA* + Korf PDBs, exact cases (depth <= 7)
+        run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --heuristic korf --corpus conformance/corpus/cube3.jsonl --max-depth 7
       - name: 3x3x3 IDA* (no heuristic), depth <= 5
-        run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --corpus conformance/corpus/cube3.jsonl --max-depth 5
+        run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --heuristic zero --corpus conformance/corpus/cube3.jsonl --max-depth 5
 
   legacy:
     name: Legacy C++ baseline

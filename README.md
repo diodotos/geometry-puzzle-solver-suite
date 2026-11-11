@@ -36,7 +36,7 @@ is now a place to explore two questions:
 | | |
 |-|-|
 | 2x2x2 | Done. BFS, A*, weighted A*, IDA*; orientation / permutation / dual / perfect pattern databases; 233/233 conformance cases with exact optimal lengths |
-| 3x3x3 | Cubie model and Kociemba two-phase solver (solutions of 20 moves or fewer; median about 0.07 s on random scrambles); 117/117 conformance cases. Korf optimal IDA* with pattern databases is next |
+| 3x3x3 | Cubie model and Kociemba two-phase solver (solutions of 20 moves or fewer; median about 0.07 s on random scrambles); 117/117 conformance cases. Korf optimal IDA* (corner + two 6-edge pattern databases, 87 MB, built in about 5 s and cached on disk): optimal up to about 15 moves in under a minute |
 | NxNxN, MxNxK | Planned: puzzle-defined moves, generic sticker model |
 | Learned search | Planned: DeepCubeA-style DAVI training (PyTorch -> ONNX), batch weighted A*, shipped 2x2x2 weights, AWS/GCP training launchers |
 
