@@ -1,0 +1,11 @@
+[package]
+name = "gpss-core"
+description = "Puzzle-agnostic search engine: the Puzzle trait, heuristics, pattern databases and solvers."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
