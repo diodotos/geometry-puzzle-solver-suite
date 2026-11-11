@@ -30,7 +30,7 @@ enum Cmd {
         #[arg(long, default_value = "target/viewer-videos")]
         out: PathBuf,
         /// Frames per second.
-        #[arg(long, default_value_t = 30)]
+        #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u32).range(1..=240))]
         fps: u32,
     },
 }
