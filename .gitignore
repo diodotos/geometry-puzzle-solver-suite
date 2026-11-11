@@ -6,6 +6,7 @@ __pycache__/
 /conformance/reports/
 /training/.venv/
 /training/runs/
+.pytest_cache/
 
 # Legacy C++ regenerates these on first use (55 MB / 77 MB)
 legacy/cpp/perfectLookup.txt
