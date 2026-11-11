@@ -10,7 +10,8 @@
   - [cuboid.md](theory/cuboid.md) - generic AxBxC sticker model, notation, metric
   - [korf-optimal-3x3.md](theory/korf-optimal-3x3.md) - Korf's pattern databases, build, cache, performance
   - [kociemba-two-phase.md](theory/kociemba-two-phase.md) - planned
-  - [deepcubea.md](theory/deepcubea.md) - planned learned solver
+  - [deepcubea.md](theory/deepcubea.md) - learned cost-to-go + batch weighted A*
+- [training.md](training.md) - train / export / evaluate learned heuristics; cloud launchers
 - [testing.md](testing.md) - test layers, corpus, CI
 - [benchmarking.md](benchmarking.md) - `gpss-bench`: counter baselines, local reports, adding puzzles
 - [benchmarks/](benchmarks/) - committed benchmark reports

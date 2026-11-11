@@ -1,0 +1,7 @@
+# CPU is enough for the 2x2x2. Tested with torch 2.14 / onnx 1.23 / onnxruntime 1.23.
+torch>=2.5
+numpy>=1.24
+onnx>=1.17
+onnxscript>=0.2
+onnxruntime>=1.22
+pytest>=8

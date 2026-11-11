@@ -56,7 +56,10 @@ against Crossref, arXiv, AAAI's archive, or the author's own site.
   DeepCubeA: a cost-to-go network trained by deep approximate value iteration (DAVI) on
   states scrambled backwards from the goal, then used as the heuristic of batch weighted
   A* (BWAS). Solves the 3x3x3 and other puzzles with near-optimal solutions. This is the
-  blueprint for the planned learned solver; see `docs/theory/deepcubea.md`.
+  blueprint for the learned solver (DAVI in `training/gpss_train/davi.py`, BWAS in
+  `gpss_core::search::BatchWeightedAStar`, the network shape in `model.py`); see
+  `docs/theory/deepcubea.md` and `docs/training.md`. Shipped weights cite it in their
+  manifest.
 - **[McA18]** S. McAleer, F. Agostinelli, A. Shmakov, P. Baldi. *Solving the Rubik's Cube
   Without Human Knowledge.* arXiv:1805.07470, 2018. The predecessor (DeepCube, autodidactic
   iteration + MCTS).
@@ -72,3 +75,11 @@ recompute it exhaustively with two independent implementations.
 
 - [`argparse.h`](https://github.com/p-ranav/argparse) by Pranav Srinivas Kumar, vendored in
   `legacy/cpp/` (MIT).
+- [PyTorch](https://pytorch.org) (BSD-3-Clause): training (`training/`). Paszke et al.,
+  *PyTorch: An Imperative Style, High-Performance Deep Learning Library*, NeurIPS 2019.
+- [ONNX](https://onnx.ai) and [ONNX Runtime](https://onnxruntime.ai) (MIT): the exported
+  network format and the inference engine.
+- [`ort`](https://github.com/pykeio/ort) (MIT/Apache-2.0): Rust bindings to ONNX Runtime
+  used by `gpss-learn`.
+- D. P. Kingma, J. Ba. *Adam: A Method for Stochastic Optimization.* ICLR 2015,
+  arXiv:1412.6980. The optimiser used by DAVI here and in [Ago19].

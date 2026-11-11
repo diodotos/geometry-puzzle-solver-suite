@@ -122,6 +122,8 @@ class Gpss(Implementation):
         cmd += ["--solver", args.solver, "--format", "json"]
         if args.heuristic:
             cmd += ["--heuristic", args.heuristic]
+        for extra in args.solver_arg:
+            cmd += extra.split("=", 1) if extra.startswith("--") and "=" in extra else [extra]
         return cmd
 
     def parse(self, result):
@@ -280,6 +282,11 @@ def main() -> int:
     ap.add_argument("--impl", required=True, choices=sorted(IMPLEMENTATIONS))
     ap.add_argument("--solver", required=True)
     ap.add_argument("--heuristic", default=None, help="heuristic name (implementations that take one)")
+    ap.add_argument("--solver-arg", action="append", default=[], metavar="--FLAG=VALUE",
+                    help="extra argument passed to the solver CLI (repeatable), e.g. --solver-arg=--lambda=1")
+    ap.add_argument("--expect-optimal", action="store_true",
+                    help="check optimal length even for solvers not known to be optimal "
+                         "(e.g. bwas with --lambda=1 and an admissible heuristic)")
     ap.add_argument("--corpus", type=Path, default=HERE / "corpus" / "cube2.jsonl")
     ap.add_argument("--tags", help="comma-separated: run cases having any of these tags")
     ap.add_argument("--ids", help="comma-separated case ids")
@@ -294,7 +301,7 @@ def main() -> int:
     if not args.no_build:
         impl.build()
     deviations = json.loads((HERE / "known_deviations.json").read_text()).get(impl.name, {})
-    optimal = args.solver in impl.optimal_solvers
+    optimal = args.solver in impl.optimal_solvers or args.expect_optimal
     cases = load_cases(args.corpus, args)
     models = {}
 

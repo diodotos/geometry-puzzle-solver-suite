@@ -5,15 +5,18 @@
 //! | [`Bfs`]     | yes                            | O(states seen)  | baseline, no heuristic         |
 //! | [`AStar`]   | yes if weight = 1 & admissible | O(states seen)  | weight > 1 gives weighted A*   |
 //! | [`IdaStar`] | yes if admissible              | O(depth)        | Korf (1985); used for 3x3x3    |
+//! | [`BatchWeightedAStar`] | yes if lambda = 1 & admissible | O(states seen) | DeepCubeA BWAS: batched heuristic calls |
 
 mod astar;
 mod bfs;
+mod bwas;
 mod idastar;
 
 use std::time::{Duration, Instant};
 
 pub use astar::AStar;
 pub use bfs::Bfs;
+pub use bwas::BatchWeightedAStar;
 pub use idastar::IdaStar;
 
 use crate::puzzle::Puzzle;
@@ -38,7 +41,8 @@ pub struct SearchStats {
     pub generated: u64,
     /// Peak number of nodes held in memory at once (open + closed / frontier / path).
     pub peak_stored: usize,
-    /// Iterations of an iterative-deepening search (1 for other searches).
+    /// Iterations of an iterative-deepening search (thresholds tried), batch iterations of
+    /// [`BatchWeightedAStar`], 1 for other searches.
     pub iterations: u32,
     /// Wall-clock time spent searching.
     pub elapsed: Duration,

@@ -1,6 +1,7 @@
 # 0005. Learned models plug in as heuristics; PyTorch training, ONNX inference
 
-**Status:** Accepted (implementation pending)
+**Status:** Accepted, implemented in Phase C2 (see ADR 0007 for the encoding and weights
+format, ADR 0008 for launchers, `docs/training.md` for the workflow)
 
 ## Context
 

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gpss-core", "crates/gpss-puzzles", "crates/gpss-cli", "crates/gpss-bench"]
+members = ["crates/gpss-core", "crates/gpss-puzzles", "crates/gpss-learn", "crates/gpss-cli", "crates/gpss-bench"]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +12,7 @@ rust-version = "1.75"
 [workspace.dependencies]
 gpss-core = { path = "crates/gpss-core" }
 gpss-puzzles = { path = "crates/gpss-puzzles" }
+gpss-learn = { path = "crates/gpss-learn" }
 clap = { version = "4", features = ["derive"] }
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }

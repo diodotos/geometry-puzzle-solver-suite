@@ -40,6 +40,25 @@ whenever `w != 1`. DeepCubeA's batch weighted A* [Ago19] is the same idea writte
 `f = lambda * g + h`, plus expanding `N` nodes at once so a neural heuristic can be
 evaluated in batches.
 
+## Batch weighted A* (`BatchWeightedAStar`) [Ago19]
+
+The search half of DeepCubeA. Priority `f = lambda * g + h` with real-valued `h`
+(`Heuristic::estimate_batch_real`). Each iteration pops the `N` lowest-`f` open nodes,
+tests each for the goal, expands them all, and evaluates every new child with **one**
+heuristic call, so a neural network runs on batches instead of single states.
+
+- `lambda = 1, N = 1` is A*; `lambda < 1` is greedier (fewer nodes, longer solutions).
+- The goal is tested when a node is popped, so with `lambda = 1` and an admissible
+  heuristic the first goal popped is optimal for any `N` (the batch only changes the order
+  in which equal-or-better nodes are expanded). `Solution::optimal` is set only in that
+  case; with a learned heuristic it is always `false`.
+- Negative estimates are clamped to 0; NaN is treated as +infinity.
+- Duplicates are detected with a best-`g` table, as in `AStar`.
+
+CI runs `bwas --lambda 1` with the `dual` heuristic on the full corpus and checks optimal
+lengths. Choosing `lambda`/`N` for the learned 2x2x2 net: see
+[`../benchmarks/cube2-learned.md`](../benchmarks/cube2-learned.md).
+
 ## IDA* (`IdaStar`) [Korf85]
 
 Depth-first search bounded by an `f` threshold; when a pass fails, the threshold becomes
@@ -61,12 +80,12 @@ memory) - per-node work is tiny and IDA* has no hash table.
 Every solver honours `SearchLimits { max_depth, max_expanded, timeout }` and returns
 `SearchStats { expanded, generated, peak_stored, iterations, elapsed }`:
 
-| field | BFS | A* | IDA* |
-|-------|-----|----|------|
-| `expanded` | states dequeued | states popped (non-stale) | nodes whose children were generated, all iterations |
-| `generated` | children after pruning | children after pruning | children after pruning |
-| `peak_stored` | arena size | max(open + closed) | max path length |
-| `iterations` | 1 | 1 | thresholds tried |
+| field | BFS | A* | IDA* | BWAS |
+|-------|-----|----|------|------|
+| `expanded` | states dequeued | states popped (non-stale) | nodes whose children were generated, all iterations | states popped (non-stale) |
+| `generated` | children after pruning | children after pruning | children after pruning | children after pruning |
+| `peak_stored` | arena size | max(open + closed) | max path length | max(open + closed) |
+| `iterations` | 1 | 1 | thresholds tried | batches (= heuristic calls) |
 
 These counters are what the benchmark reports compare across implementations, because
 they are machine-independent.
@@ -78,4 +97,5 @@ they are machine-independent.
 | small puzzle, verifying correctness | `bfs` |
 | exact distance table fits in memory | `idastar --heuristic perfect` (expands exactly `d` nodes) |
 | good admissible heuristic, optimal needed | `idastar` (memory-bounded) or `astar` (fewer re-expansions) |
-| speed over optimality | `astar --weight 2` (later: two-phase, BWAS) |
+| speed over optimality | `astar --weight 2` (later: two-phase) |
+| learned heuristic (DeepCubeA) | `bwas --weights <manifest> --lambda 0.6 --batch-size 100` |

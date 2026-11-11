@@ -1,0 +1,30 @@
+[package]
+name = "gpss-learn"
+description = "DeepCubeA-style learned heuristics: training-data generation, weight manifests, ONNX inference (feature `onnx`) and exact evaluation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+# The `onnx` feature pulls in `ort` 2.0, which needs Rust 1.92; the default build keeps
+# the workspace MSRV.
+rust-version.workspace = true
+
+[features]
+default = []
+# ONNX Runtime inference via `ort`. ONNX Runtime itself is loaded at run time
+# (`load-dynamic`): nothing is downloaded or linked at build time, and any ONNX Runtime
+# >= 1.22 shared library works (e.g. the one in `pip install onnxruntime`). See
+# `onnx::runtime_library` for how it is located.
+onnx = ["dep:ort"]
+
+[dependencies]
+gpss-core.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2 = "0.10"
+ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, features = ["std", "load-dynamic", "api-22"] }
+
+[dev-dependencies]
+gpss-puzzles.workspace = true

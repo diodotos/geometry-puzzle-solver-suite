@@ -181,3 +181,48 @@ proptest! {
         prop_assert!(FullCoord.index(&s) < STATE_COUNT);
     }
 }
+
+#[test]
+fn encoding_is_injective_and_in_range() {
+    use gpss_core::Encodable;
+    let p = Cube2::new();
+    let spec = p.encoding();
+    assert_eq!(spec.key(), "cube2/corner-cubie/v1");
+    let mut buf = vec![0u8; spec.len];
+    p.encode(&Cube2State::SOLVED, &mut buf);
+    assert_eq!(buf, [0, 3, 6, 9, 12, 15, 18, 21]);
+    let mut rng = StdRng::seed_from_u64(3);
+    let mut seen = std::collections::HashMap::new();
+    for _ in 0..2000 {
+        let s = p.scrambled(&random_scramble(&mut rng, 20));
+        p.encode(&s, &mut buf);
+        assert!(buf.iter().all(|&c| (c as u16) < spec.classes));
+        if let Some(prev) = seen.insert(buf.clone(), s) {
+            assert_eq!(prev, s, "two states share an encoding");
+        }
+    }
+}
+
+#[test]
+fn bwas_with_admissible_heuristic_is_optimal_and_learned_settings_stay_valid() {
+    use gpss_core::search::BatchWeightedAStar;
+    let p = Cube2::new();
+    let dual = Cube2Heuristic::Dual.build(&p);
+    let perfect = PdbHeuristic::new(&p, FullCoord);
+    let optimal = BatchWeightedAStar::new(&dual, 1.0, 50);
+    let greedy = BatchWeightedAStar::new(&dual, 0.3, 200);
+    let mut rng = StdRng::seed_from_u64(5);
+    for _ in 0..40 {
+        let scr = random_scramble(&mut rng, 25);
+        let (start, _) = p.regrip(&p.scrambled(&scr));
+        let d = perfect.estimate(&start) as usize;
+        let sol = optimal.solve(&p, &start, &SearchLimits::default()).unwrap();
+        assert!(sol.optimal);
+        assert_eq!(sol.moves.len(), d);
+        assert!(p.apply_all(&start, &sol.moves) == Cube2State::SOLVED);
+        let sol = greedy.solve(&p, &start, &SearchLimits::default()).unwrap();
+        assert!(!sol.optimal);
+        assert!(sol.moves.len() >= d);
+        assert!(p.apply_all(&start, &sol.moves) == Cube2State::SOLVED);
+    }
+}

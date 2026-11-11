@@ -26,6 +26,7 @@
 //! index, which is what lets the full distance table fit in 3.7 MB. See
 //! `docs/theory/cube2.md` for the proof sketch and the coordinate definitions.
 
+use gpss_core::encode::{Encodable, EncodingSpec};
 use gpss_core::heuristic::{Heuristic, MaxHeuristic};
 use gpss_core::pdb::{Coordinate, PdbHeuristic};
 use gpss_core::search::{SearchError, SearchLimits, Solution, Solver};
@@ -306,6 +307,28 @@ impl Puzzle for Cube2 {
 
     fn can_follow(&self, prev: FaceTurn, next: FaceTurn) -> bool {
         FaceTurn::can_follow(prev, next)
+    }
+}
+
+/// Learned-heuristic encoding: for each of the 8 corner positions, the category
+/// `3 * piece + twist` (24 classes). Bump `version` if this ever changes; shipped weights
+/// in `weights/cube2/` are keyed by it. See `docs/theory/deepcubea.md`.
+impl Encodable for Cube2 {
+    fn encoding(&self) -> EncodingSpec {
+        EncodingSpec {
+            puzzle: "cube2".into(),
+            scheme: "corner-cubie".into(),
+            version: 1,
+            len: 8,
+            classes: 24,
+        }
+    }
+
+    #[inline]
+    fn encode(&self, state: &Cube2State, out: &mut [u8]) {
+        for (i, o) in out.iter_mut().enumerate().take(8) {
+            *o = 3 * state.cp[i] + state.co[i];
+        }
     }
 }
 

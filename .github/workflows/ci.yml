@@ -62,3 +62,39 @@ jobs:
           python-version: "3.11"
       - name: Build and run edge cases and short scrambles
         run: python3 conformance/harness.py --impl legacy-cpp --solver astardual --max-depth 7
+
+  learned:
+    name: Learned solver (ONNX feature, trainer, shipped weights)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: learn
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: training/requirements.txt
+      - name: Install CPU PyTorch, ONNX, ONNX Runtime
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r training/requirements.txt
+      - run: cargo clippy --all-targets --features gpss-cli/learn -- -D warnings
+      - run: cargo test --release -p gpss-learn -p gpss-cli --features gpss-cli/learn
+      - run: cargo build --release -p gpss-cli --features learn
+      - name: Trainer and launcher tests (cloud calls mocked)
+        working-directory: training
+        run: python -m pytest -q
+      - name: BWAS + shipped 2x2x2 weights, full corpus
+        run: >
+          python3 conformance/harness.py --impl gpss --no-build --solver bwas
+          --solver-arg=--weights=weights/cube2/cube2-davi-v1.json
+          --solver-arg=--lambda=0.6 --solver-arg=--batch-size=100
+      - name: BWAS lambda=1 + admissible dual heuristic is optimal, full corpus
+        run: >
+          python3 conformance/harness.py --impl gpss --no-build --solver bwas --heuristic dual
+          --solver-arg=--lambda=1 --solver-arg=--batch-size=50 --expect-optimal

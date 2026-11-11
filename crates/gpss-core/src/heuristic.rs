@@ -25,6 +25,18 @@ pub trait Heuristic<P: Puzzle + ?Sized> {
         out.extend(states.iter().map(|s| self.estimate(s)));
     }
 
+    /// Evaluate many states at once, keeping fractional estimates.
+    ///
+    /// Learned heuristics produce real-valued cost-to-go estimates; rounding them to
+    /// integers would throw away the tie-breaking information batch weighted A* relies
+    /// on. The default converts [`Heuristic::estimate_batch`].
+    fn estimate_batch_real(&self, states: &[P::State], out: &mut Vec<f32>) {
+        let mut ints = Vec::with_capacity(states.len());
+        self.estimate_batch(states, &mut ints);
+        out.clear();
+        out.extend(ints.into_iter().map(|h| h as f32));
+    }
+
     /// Whether the estimate is guaranteed never to exceed the true distance.
     fn is_admissible(&self) -> bool {
         true
@@ -92,6 +104,9 @@ impl<P: Puzzle + ?Sized, H: Heuristic<P> + ?Sized> Heuristic<P> for &H {
     fn estimate_batch(&self, states: &[P::State], out: &mut Vec<u32>) {
         (**self).estimate_batch(states, out)
     }
+    fn estimate_batch_real(&self, states: &[P::State], out: &mut Vec<f32>) {
+        (**self).estimate_batch_real(states, out)
+    }
     fn is_admissible(&self) -> bool {
         (**self).is_admissible()
     }
@@ -106,6 +121,9 @@ impl<P: Puzzle + ?Sized, H: Heuristic<P> + ?Sized> Heuristic<P> for Box<H> {
     }
     fn estimate_batch(&self, states: &[P::State], out: &mut Vec<u32>) {
         (**self).estimate_batch(states, out)
+    }
+    fn estimate_batch_real(&self, states: &[P::State], out: &mut Vec<f32>) {
+        (**self).estimate_batch_real(states, out)
     }
     fn is_admissible(&self) -> bool {
         (**self).is_admissible()
