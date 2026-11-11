@@ -289,7 +289,8 @@ in between). The mean Bellman target rose quickly to ~9.5 by update 90, then pla
 9.4-9.6 while the loss drifted between 0.13 and 0.16, so every later sync was forced.
 
 `gpss evaluate --puzzle cube3 --per-depth 5 --optimal-depth 10 --random 10
---max-expanded 200000 --lambda 0.6 --batch-size 1000`, on CPU (8 cores):
+--max-expanded 200000 --lambda 0.6 --batch-size 1000`, on the dev VM: 8 vCPUs (generic "Intel Xeon Processor" cloud VM, no GPU), ONNX Runtime 1.23.2 using all
+threads:
 
 | checkpoint | MAE vs Korf (depth 1-10) | overestimates | labelled solves (optimal) | 100-move scrambles solved | mean length |
 |---|---|---|---|---|---|
@@ -299,7 +300,7 @@ in between). The mean Bellman target rose quickly to ~9.5 by update 90, then pla
 The network already guides BWAS to optimal solutions on short scrambles, and the solutions it
 finds for random states are near-optimal in length (typical optimal distance 17-18). It is
 still far from the paper's 100% solve rate: random states need search budgets in the
-millions of nodes (CPU inference here manages ~1,100-1,200 expansions/s), and the target plateau
+millions of nodes (CPU inference on that VM managed ~1,100-1,200 expansions/s), and the target plateau
 suggests the network needs many more updates, a sync rule tuned for this preset, or both.
 
 ## Deviations from the paper
