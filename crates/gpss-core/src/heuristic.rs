@@ -115,6 +115,9 @@ impl<P: Puzzle + ?Sized, H: Heuristic<P> + ?Sized> Heuristic<P> for &H {
     fn estimate(&self, state: &P::State) -> u32 {
         (**self).estimate(state)
     }
+    fn estimate_within(&self, state: &P::State, budget: u32) -> u32 {
+        (**self).estimate_within(state, budget)
+    }
     fn estimate_batch(&self, states: &[P::State], out: &mut Vec<u32>) {
         (**self).estimate_batch(states, out)
     }
@@ -132,6 +135,9 @@ impl<P: Puzzle + ?Sized, H: Heuristic<P> + ?Sized> Heuristic<P> for Box<H> {
     }
     fn estimate(&self, state: &P::State) -> u32 {
         (**self).estimate(state)
+    }
+    fn estimate_within(&self, state: &P::State, budget: u32) -> u32 {
+        (**self).estimate_within(state, budget)
     }
     fn estimate_batch(&self, states: &[P::State], out: &mut Vec<u32>) {
         (**self).estimate_batch(states, out)

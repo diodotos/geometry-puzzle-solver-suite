@@ -503,3 +503,29 @@ mod symmetry {
         }
     }
 }
+
+/// `&H` and `Box<H>` forward `estimate_within`, so a boxed budget-aware heuristic (as
+/// built by the CLI) keeps its early exit.
+#[test]
+fn estimate_within_is_forwarded_through_box_and_ref() {
+    use gpss_core::Heuristic;
+    struct Budgeted;
+    impl Heuristic<Cube3> for Budgeted {
+        fn name(&self) -> String {
+            "budgeted".into()
+        }
+        fn estimate(&self, _: &Cube3State) -> u32 {
+            5
+        }
+        fn estimate_within(&self, _: &Cube3State, budget: u32) -> u32 {
+            budget.min(5)
+        }
+    }
+    fn via<H: Heuristic<Cube3>>(h: H, budget: u32) -> u32 {
+        h.estimate_within(&Cube3State::SOLVED, budget)
+    }
+    let boxed: Box<dyn Heuristic<Cube3>> = Box::new(Budgeted);
+    assert_eq!(via(&Budgeted, 3), 3);
+    assert_eq!(via(&boxed, 1), 1);
+    assert_eq!(via(boxed, 2), 2);
+}
