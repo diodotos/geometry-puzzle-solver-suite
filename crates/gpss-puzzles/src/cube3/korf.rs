@@ -14,6 +14,7 @@
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
 
 use gpss_core::search::IdaStar;
@@ -291,7 +292,9 @@ impl KorfTables {
         if let Some(dir) = path.parent() {
             fs::create_dir_all(dir)?;
         }
-        let tmp = path.with_extension(format!("tmp{}", std::process::id()));
+        static SEQ: AtomicU64 = AtomicU64::new(0);
+        let seq = SEQ.fetch_add(1, Ordering::Relaxed);
+        let tmp = path.with_extension(format!("tmp{}-{seq}", std::process::id()));
         {
             let mut f = io::BufWriter::new(fs::File::create(&tmp)?);
             f.write_all(MAGIC)?;
