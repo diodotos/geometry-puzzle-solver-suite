@@ -681,7 +681,7 @@ fn play(gpu: Option<Gpu<'_>>, script: &Path, opts: &Options) -> Result<Report, S
 }
 
 /// Escape `v` as a filter option value inside an ffmpeg filtergraph: once for the
-/// option level (`\\ ' :`) and once more for the graph level (`\\ ' [ ] , ;`).
+/// option level (`\ ' :`) and once more for the graph level (`\ ' [ ] , ;`).
 fn filter_arg(v: &str) -> String {
     let escape = |s: &str, special: &str| {
         s.chars().fold(String::new(), |mut out, c| {
