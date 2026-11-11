@@ -205,3 +205,47 @@ fn twophase_edge_cases() {
         .solve_scramble(&seq("R U F"), &solver, &strict)
         .is_err());
 }
+
+/// Builds (or loads from the cache) the full 87 MB Korf tables; run with
+/// `cargo test --release -- --ignored korf`.
+#[test]
+#[ignore = "builds 87 MB of pattern databases; run in release mode"]
+fn korf_tables_and_optimal_solves() {
+    use super::korf::{self, N_CORNERS, N_EDGES6};
+    let t = korf::tables();
+    // Corner distribution in the half-turn metric (Korf 1997, Table 1 of the 2x2x2 with
+    // free orientation x 24).
+    assert_eq!(
+        t.corners.histogram(),
+        vec![
+            1, 18, 243, 2874, 28000, 205416, 1168516, 5402628, 20776176, 45391616, 15139616, 64736
+        ]
+    );
+    for e in [&t.edges_a, &t.edges_b] {
+        let h = e.histogram();
+        assert_eq!(h.iter().sum::<u64>(), N_EDGES6 as u64);
+        assert_eq!(h[0], 1);
+    }
+    // The two edge sets are not related by a symmetry that preserves the edge-orientation
+    // convention, so their distributions differ; both were checked to sum to 12!/6! x 2^6.
+    assert_eq!(
+        t.edges_a.histogram(),
+        vec![1, 18, 230, 2747, 30847, 308783, 2508618, 13189082, 23497569, 3039786, 239]
+    );
+    assert_eq!(t.corners.histogram().iter().sum::<u64>(), N_CORNERS as u64);
+
+    let cube = Cube3::new();
+    let solver = korf::solver();
+    let mut rng = StdRng::seed_from_u64(97);
+    for len in [1usize, 4, 8, 10, 11] {
+        let scramble = random_scramble(&mut rng, len);
+        let sol = cube
+            .solve_scramble(&scramble, &solver, &SearchLimits::default())
+            .unwrap();
+        assert!(sol.moves.len() <= len);
+        let s = cube.scrambled(&scramble).then_all(&sol.moves);
+        assert_eq!(s, Cube3State::SOLVED);
+        // Admissible and consistent with the found optimum.
+        assert!(t.estimate(&cube.scrambled(&scramble)) as usize <= sol.moves.len());
+    }
+}
