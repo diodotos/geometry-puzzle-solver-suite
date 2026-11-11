@@ -133,7 +133,11 @@ pub fn parse_point(s: &str) -> Option<Point> {
         return Some(Point::FromPress(x, y));
     }
     if let Some((face, rest)) = s.split_once('@') {
-        let face = face.chars().next().filter(|c| "URFDLB".contains(*c))?;
+        let mut chars = face.chars();
+        let face = chars.next().filter(|c| "URFDLB".contains(*c))?;
+        if chars.next().is_some() {
+            return None;
+        }
         let (pos, offset) = match rest.split_once('+') {
             Some((p, o)) => (p, pair(o)?),
             None => (rest, (0.0, 0.0)),
@@ -261,5 +265,6 @@ mod tests {
         assert_eq!(cmds[2], Command::Release);
         assert_eq!(cmds[3], Command::Expect(Expect::State("R".into())));
         assert!(parse("bogus").is_err());
+        assert_eq!(parse_point("FF@2,0,2"), None);
     }
 }
