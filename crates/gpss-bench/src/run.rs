@@ -219,8 +219,13 @@ pub fn run(registry: &mut Registry, options: &RunOptions) -> Result<SuiteReport,
             .collect();
         for (case, c) in in_scope.into_iter().zip(&checks.cases) {
             debug_assert_eq!(case.id, c.id);
-            if let CaseResult::Solved { elapsed_s, .. } = c.result {
-                if let Some(timing) = t.time(case, elapsed_s, &options.timing) {
+            if let CaseResult::Solved {
+                elapsed_s,
+                ref counters,
+                ..
+            } = c.result
+            {
+                if let Some(timing) = t.time(case, elapsed_s, counters, &options.timing) {
                     timings.push(timing);
                 }
             }

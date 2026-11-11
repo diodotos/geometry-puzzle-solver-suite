@@ -253,8 +253,15 @@ pub trait BenchTarget {
     /// Run `case` once and check the answer. Calls [`BenchTarget::setup`] if needed.
     fn check(&mut self, case: &Case) -> CaseCheck;
     /// Time `case` repeatedly. `first` is the check run's elapsed time, reused as the only
-    /// sample when it already exceeds the per-case budget. `None` for non-solve cases.
-    fn time(&mut self, case: &Case, first: f64, budget: &TimingBudget) -> Option<CaseTiming>;
+    /// sample (with `counters`, so a slow case is not solved again) when it already exceeds
+    /// the per-case budget. `None` for non-solve cases.
+    fn time(
+        &mut self,
+        case: &Case,
+        first: f64,
+        counters: &Counters,
+        budget: &TimingBudget,
+    ) -> Option<CaseTiming>;
 }
 
 /// Pattern-database build cost.
@@ -512,7 +519,13 @@ impl<P: Puzzle> BenchTarget for Target<P> {
         }
     }
 
-    fn time(&mut self, case: &Case, first: f64, budget: &TimingBudget) -> Option<CaseTiming> {
+    fn time(
+        &mut self,
+        case: &Case,
+        first: f64,
+        counters: &Counters,
+        budget: &TimingBudget,
+    ) -> Option<CaseTiming> {
         if case.expect != Expect::Solve {
             return None;
         }
@@ -526,8 +539,7 @@ impl<P: Puzzle> BenchTarget for Target<P> {
                 .solve(black_box(&workload.puzzle), black_box(&start), &limits)
                 .ok()
         };
-        let sol = solve()?;
-        let (expanded, generated) = (sol.stats.expanded, sol.stats.generated);
+        let (expanded, generated) = (counters.expanded, counters.generated);
         let mut timing = CaseTiming {
             id: case.id.clone(),
             bucket,
