@@ -12,6 +12,8 @@ pub const N_SLICE: usize = 495; // C(12,4)
 pub const N_CPERM: usize = 40320; // 8!
 pub const N_UDEPERM: usize = 40320; // 8! (phase 2 only)
 pub const N_SPERM: usize = 24; // 4!
+/// Number of slice-sorted values: slice-edge positions and their order, `495 * 24`.
+pub const N_SLICE_SORTED: usize = N_SLICE * N_SPERM;
 
 /// Slice coordinate of the solved cube (UD-slice edges `FR FL BL BR` at positions 8..12).
 pub const SLICE_SOLVED: u16 = 494;
@@ -156,5 +158,39 @@ pub fn set_sperm(s: &mut Cube3State, r: u8) {
     perm_unrank(r as u32, &mut p);
     for (dst, &x) in s.ep[8..].iter_mut().zip(&p) {
         *dst = x + 8;
+    }
+}
+
+/// Positions *and* order of the four UD-slice edges: `slice * 24 + rank`, where `rank`
+/// is the permutation rank of the slice edges read in position order. Defined on the
+/// whole cube (unlike [`sperm`]); in `G1`, `slice_sorted % 24 == sperm`. The two-phase
+/// solver tracks it through phase 1 so that phase-2 tables can be consulted without
+/// rebuilding the cube [KocImp].
+///
+/// [KocImp]: https://kociemba.org/math/imptwophase.htm
+pub fn slice_sorted(s: &Cube3State) -> u16 {
+    let mut order = [0u8; 4];
+    let mut k = 0;
+    for &e in &s.ep {
+        if e >= 8 {
+            order[k] = e - 8;
+            k += 1;
+        }
+    }
+    slice(s) * N_SPERM as u16 + perm_rank(&order) as u16
+}
+
+/// Set the slice-edge positions and order (see [`slice_sorted`]); other edges are
+/// placed as by [`set_slice`].
+pub fn set_slice_sorted(s: &mut Cube3State, idx: u16) {
+    set_slice(s, idx / N_SPERM as u16);
+    let mut order = [0u8; 4];
+    perm_unrank((idx % N_SPERM as u16) as u32, &mut order);
+    let mut k = 0;
+    for e in s.ep.iter_mut() {
+        if *e >= 8 {
+            *e = order[k] + 8;
+            k += 1;
+        }
     }
 }

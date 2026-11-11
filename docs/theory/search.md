@@ -71,6 +71,12 @@ IDA* is the algorithm of choice for the 3x3x3, whose 4.3 x 10^19 states rule out
 anything that stores the frontier: Korf's optimal solver [Korf97] is IDA* plus pattern
 databases (see [`pattern-databases.md`](pattern-databases.md)).
 
+IDA* evaluates children with `Heuristic::estimate_within(child, bound - g - 1)`: it only
+needs to know whether the estimate exceeds the remaining budget, so a heuristic made of
+several lookups may stop at the first one that does (the default is `estimate`, so plain
+heuristics are unaffected). `cube3::korf` uses this for its symmetry and inverse lookups;
+see [`korf-optimal-3x3.md`](korf-optimal-3x3.md).
+
 On the 2x2x2 with the `dual` heuristic, IDA* solves antipodal scrambles in about 5 ms
 using ~9 stored nodes, versus ~20 ms for A* with the same heuristic (and its larger
 memory) - per-node work is tiny and IDA* has no hash table.

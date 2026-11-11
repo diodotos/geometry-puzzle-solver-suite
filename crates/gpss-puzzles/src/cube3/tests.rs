@@ -248,4 +248,258 @@ fn korf_tables_and_optimal_solves() {
         // Admissible and consistent with the found optimum.
         assert!(t.estimate(&cube.scrambled(&scramble)) as usize <= sol.moves.len());
     }
+
+    // The symmetry/inverse lookups only ever raise the plain estimate, stay admissible,
+    // and `estimate_within` agrees with `estimate` whenever the latter fits the budget.
+    use gpss_core::Heuristic;
+    let (plain, full) = (KorfHeuristic::plain(), KorfHeuristic::new());
+    let st = super::sym::tables();
+    for len in 0..=40 {
+        let s = cube.scrambled(&random_scramble(&mut rng, len));
+        let (hp, hf) = (plain.estimate(&s), full.estimate(&s));
+        assert!(hp <= hf && hf as usize <= len);
+        // Distance is invariant under conjugation and inversion, so every variant's
+        // estimate is a lower bound for the original.
+        for v in [s.inverse(), st.conjugate(&s, super::sym::urf3())] {
+            assert!(plain.estimate(&v) as usize <= len);
+        }
+        for b in 0..=hf + 1 {
+            let w = full.estimate_within(&s, b);
+            assert!(w <= hf);
+            if hf <= b {
+                assert_eq!(w, hf);
+            } else {
+                assert!(w > b);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------
+// Symmetries (`cube3::sym`)
+
+mod symmetry {
+    use super::super::sym::{self, Facelets, N_SYM, N_SYM_D4H};
+    use super::*;
+    use proptest::prelude::*;
+    use rand::Rng;
+
+    fn random_state(seed: u64, len: usize) -> Cube3State {
+        Cube3State::SOLVED.then_all(&random_scramble(&mut StdRng::seed_from_u64(seed), len))
+    }
+
+    /// The geometric model behind the symmetry tables agrees with the hand-written move
+    /// tables: turning a layer of the sticker picture is the same as the cubie move.
+    #[test]
+    fn facelet_model_matches_move_tables() {
+        for face in 0..6u8 {
+            let solved = Facelets::from_state(&Cube3State::SOLVED);
+            let mv = FaceTurn::all().nth(3 * face as usize).unwrap();
+            assert_eq!(
+                solved.turn(face),
+                Facelets::from_state(transform(mv)),
+                "{mv}"
+            );
+            let s = random_state(face as u64, 25);
+            assert_eq!(
+                Facelets::from_state(&s).turn(face),
+                Facelets::from_state(&s.then(transform(mv))),
+                "{mv} after a scramble"
+            );
+        }
+    }
+
+    #[test]
+    fn symmetry_group_structure() {
+        let t = sym::tables();
+        // 48 distinct face maps, closed under composition, with inverses.
+        for a in 0..N_SYM {
+            for b in 0..N_SYM {
+                assert_eq!(a == b, t.faces[a] == t.faces[b]);
+            }
+            assert_eq!(t.mult[a][t.inv[a] as usize], 0);
+            assert_eq!(t.mult[0][a] as usize, a);
+        }
+        // Exactly 24 reflections; the odd-numbered ones.
+        for s in 0..N_SYM {
+            assert_eq!(t.is_reflection(s), s % 2 == 1, "{s}");
+        }
+        // 0..16 is the subgroup keeping the U-D axis (U goes to U or D).
+        for s in 0..N_SYM {
+            let ud = matches!(t.faces[s][0], 0 | 3);
+            assert_eq!(ud, s < N_SYM_D4H, "{s}");
+        }
+        for a in 0..N_SYM_D4H {
+            for b in 0..N_SYM_D4H {
+                assert!((t.mult[a][b] as usize) < N_SYM_D4H);
+            }
+        }
+    }
+
+    /// Conjugation turns quarter turns into quarter turns (anticlockwise ones under a
+    /// reflection) and half turns into half turns.
+    #[test]
+    fn conjugation_maps_moves_to_moves() {
+        let t = sym::tables();
+        let moves: Vec<FaceTurn> = FaceTurn::all().collect();
+        for (m, mv) in moves.iter().enumerate() {
+            for s in 0..N_SYM {
+                let c = moves[t.move_conj[m][s] as usize];
+                assert_eq!(sym::conjugate(transform(*mv), s), *transform(c));
+                let expected_turn = if t.is_reflection(s) {
+                    mv.inverse().turn
+                } else {
+                    mv.turn
+                };
+                assert_eq!(c.turn, expected_turn, "{mv} under {s}");
+                assert_eq!(c.face as u8, t.faces[s][mv.face as usize]);
+            }
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        /// Conjugation is a left group action: `conj(conj(c, a), b) == conj(c, b . a)`,
+        /// and the identity symmetry does nothing.
+        #[test]
+        fn conjugation_is_a_group_action(seed in any::<u64>(), len in 0usize..40,
+                                         a in 0..N_SYM, b in 0..N_SYM) {
+            let t = sym::tables();
+            let c = random_state(seed, len);
+            prop_assert_eq!(t.conjugate(&c, 0), c);
+            prop_assert_eq!(
+                t.conjugate(&t.conjugate(&c, a), b),
+                t.conjugate(&c, t.mult[b][a] as usize)
+            );
+            prop_assert_eq!(t.conjugate(&t.conjugate(&c, a), t.inv[a] as usize), c);
+        }
+
+        /// Conjugation by a fixed symmetry is an automorphism: it respects composition
+        /// and inverses, fixes the solved cube and keeps states valid.
+        #[test]
+        fn conjugation_is_an_automorphism(s1 in any::<u64>(), s2 in any::<u64>(),
+                                          len in 0usize..30, s in 0..N_SYM) {
+            let t = sym::tables();
+            let (a, b) = (random_state(s1, len), random_state(s2, 30 - len));
+            prop_assert_eq!(
+                t.conjugate(&a.then(&b), s),
+                t.conjugate(&a, s).then(&t.conjugate(&b, s))
+            );
+            prop_assert_eq!(t.conjugate(&a.inverse(), s), t.conjugate(&a, s).inverse());
+            prop_assert_eq!(t.conjugate(&Cube3State::SOLVED, s), Cube3State::SOLVED);
+            prop_assert!(t.conjugate(&a, s).is_valid());
+        }
+
+        /// Conjugating a scramble is the same as playing the conjugated moves, so the
+        /// conjugate is exactly as far from solved.
+        #[test]
+        fn conjugate_of_scramble_is_scramble_of_conjugates(seed in any::<u64>(),
+                                                           len in 0usize..30, s in 0..N_SYM) {
+            let t = sym::tables();
+            let scramble = random_scramble(&mut StdRng::seed_from_u64(seed), len);
+            let moves: Vec<FaceTurn> = FaceTurn::all().collect();
+            let conj: Vec<FaceTurn> = scramble
+                .iter()
+                .map(|&m| moves[t.move_conj[move_index(m)][s] as usize])
+                .collect();
+            prop_assert_eq!(
+                t.conjugate(&Cube3State::SOLVED.then_all(&scramble), s),
+                Cube3State::SOLVED.then_all(&conj)
+            );
+        }
+
+        /// The two-phase coordinates are carried along by the 16 `D4h` symmetries: the
+        /// coordinate of a conjugate depends only on the coordinate of the original, which
+        /// is what lets `symcoord` tabulate conjugation on coordinates alone.
+        #[test]
+        fn coordinates_are_consistent_under_d4h(seed in any::<u64>(), len in 0usize..40,
+                                                s in 0..N_SYM_D4H) {
+            let t = sym::tables();
+            let c = random_state(seed, len);
+            let conj = t.conjugate(&c, s);
+            let mut x = Cube3State::SOLVED;
+            set_twist(&mut x, twist(&c));
+            prop_assert_eq!(twist(&t.conjugate(&x, s)), twist(&conj));
+            let mut x = Cube3State::SOLVED;
+            set_slice(&mut x, slice(&c));
+            set_flip(&mut x, flip(&c));
+            let xc = t.conjugate(&x, s);
+            prop_assert_eq!((slice(&xc), flip(&xc)), (slice(&conj), flip(&conj)));
+            let mut x = Cube3State::SOLVED;
+            set_cperm(&mut x, cperm(&c));
+            prop_assert_eq!(cperm(&t.conjugate(&x, s)), cperm(&conj));
+            let mut x = Cube3State::SOLVED;
+            set_slice_sorted(&mut x, slice_sorted(&c));
+            prop_assert_eq!(slice(&x), slice(&c));
+            prop_assert_eq!(slice_sorted(&x), slice_sorted(&c));
+        }
+
+        /// Inside `G1` the U/D-edge and slice permutations are consistent too, and
+        /// `slice_sorted` reduces to `sperm`.
+        #[test]
+        fn g1_coordinates_are_consistent_under_d4h(seed in any::<u64>(), len in 0usize..30,
+                                                   s in 0..N_SYM_D4H) {
+            let t = sym::tables();
+            let g1: Vec<FaceTurn> = "U U2 U' D D2 D' R2 L2 F2 B2"
+                .split(' ')
+                .map(|m| crate::cube::parse_sequence(m).unwrap()[0])
+                .collect();
+            let mut rng = StdRng::seed_from_u64(seed);
+            let c = Cube3State::SOLVED
+                .then_all(&(0..len).map(|_| g1[rng.gen_range(0..10)]).collect::<Vec<_>>());
+            let conj = t.conjugate(&c, s);
+            prop_assert_eq!((twist(&conj), flip(&conj), slice(&conj)), (0, 0, SLICE_SOLVED));
+            prop_assert_eq!(slice_sorted(&c) as usize % N_SPERM, sperm(&c) as usize);
+            let mut x = Cube3State::SOLVED;
+            set_udeperm(&mut x, udeperm(&c));
+            prop_assert_eq!(udeperm(&t.conjugate(&x, s)), udeperm(&conj));
+        }
+
+        /// The symmetry-reduced phase-1 table gives the same exact distance for all 16
+        /// `D4h` conjugates, never more than the scramble length or the phase-1 diameter
+        /// (12), and agrees with a brute-force check at small distances.
+        #[test]
+        fn phase1_distance_is_symmetric_and_exact(seed in any::<u64>(), len in 0usize..30,
+                                                  s in 0..N_SYM_D4H) {
+            use super::super::twophase::phase1_distance;
+            let t = sym::tables();
+            let c = random_state(seed, len);
+            let d = phase1_distance(&c);
+            prop_assert!(d <= len.min(12));
+            prop_assert_eq!(phase1_distance(&t.conjugate(&c, s)), d);
+            prop_assert_eq!(phase1_distance(&c.inverse().inverse()), d);
+            if len <= 1 {
+                prop_assert_eq!(d, if c.co == [0; 8] && c.eo == [0; 12]
+                    && c.ep[8..].iter().all(|&e| e >= 8) { 0 } else { 1 });
+            }
+        }
+
+        /// Likewise for the phase-2 corner x U/D-edge table, inside `G1`.
+        #[test]
+        fn phase2_distance_is_symmetric(seed in any::<u64>(), len in 0usize..30,
+                                        s in 0..N_SYM_D4H) {
+            use super::super::twophase::phase2_corner_edge_distance;
+            let t = sym::tables();
+            let g1: Vec<FaceTurn> = "U U2 U' D D2 D' R2 L2 F2 B2"
+                .split(' ')
+                .map(|m| crate::cube::parse_sequence(m).unwrap()[0])
+                .collect();
+            let mut rng = StdRng::seed_from_u64(seed);
+            let c = Cube3State::SOLVED
+                .then_all(&(0..len).map(|_| g1[rng.gen_range(0..10)]).collect::<Vec<_>>());
+            let d = phase2_corner_edge_distance(&c);
+            prop_assert!(d <= len);
+            prop_assert_eq!(phase2_corner_edge_distance(&t.conjugate(&c, s)), d);
+        }
+
+        #[test]
+        fn inverse_is_a_two_sided_inverse(seed in any::<u64>(), len in 0usize..40) {
+            let scramble = random_scramble(&mut StdRng::seed_from_u64(seed), len);
+            let c = Cube3State::SOLVED.then_all(&scramble);
+            prop_assert_eq!(c.then(&c.inverse()), Cube3State::SOLVED);
+            prop_assert_eq!(c.inverse().then(&c), Cube3State::SOLVED);
+            prop_assert_eq!(c.inverse(), Cube3State::SOLVED.then_all(&invert_sequence(&scramble)));
+        }
+    }
 }

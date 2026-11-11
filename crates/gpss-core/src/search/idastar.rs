@@ -52,7 +52,9 @@ impl<'a, 'b, P: Puzzle + ?Sized, H: Heuristic<P>> Ctx<'a, 'b, P, H> {
             }
             let child = self.puzzle.apply(state, mv);
             self.budget.stats.generated += 1;
-            let ch = self.heuristic.estimate(&child);
+            let ch = self
+                .heuristic
+                .estimate_within(&child, bound.saturating_sub(g + 1));
             self.path.push(mv);
             self.budget.note_stored(self.path.len());
             match self.dfs(&child, g + 1, ch, bound)? {

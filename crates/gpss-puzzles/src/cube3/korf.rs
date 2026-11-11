@@ -13,13 +13,14 @@
 
 use std::fs;
 use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::Path;
 use std::sync::OnceLock;
 
 use gpss_core::search::IdaStar;
 use gpss_core::Heuristic;
 
+pub use super::cache::cache_dir;
+use super::cache::{invalid, write_atomic, Fnv};
 use super::coord::{cperm, set_cperm, set_twist, twist, N_CPERM, N_TWIST};
 use super::{move_table, Cube3, Cube3State};
 
@@ -188,6 +189,19 @@ fn edges6_index(s: &Cube3State, base: u8) -> usize {
 }
 
 /// Index of `s` in the corner database.
+/// [`edges6_index`] of `s.inverse()`, read directly: in the inverse, edge `e` sits at
+/// position `s.ep[e]` with orientation `s.eo[e]`.
+fn edges6_index_inverse(s: &Cube3State, base: u8) -> usize {
+    let mut loc = [0u8; 6];
+    let mut ori = 0usize;
+    for e in 0..6 {
+        let p = (base + e) as usize;
+        loc[e as usize] = s.ep[p];
+        ori |= (s.eo[p] as usize) << e;
+    }
+    loc_rank(&loc) as usize * 64 + ori
+}
+
 fn corners_index(s: &Cube3State) -> usize {
     cperm(s) as usize * N_TWIST + twist(s) as usize
 }
@@ -289,14 +303,7 @@ impl KorfTables {
 
     /// Write the tables to `path` (via a temporary file and rename).
     pub fn save(&self, path: &Path) -> io::Result<()> {
-        if let Some(dir) = path.parent() {
-            fs::create_dir_all(dir)?;
-        }
-        static SEQ: AtomicU64 = AtomicU64::new(0);
-        let seq = SEQ.fetch_add(1, Ordering::Relaxed);
-        let tmp = path.with_extension(format!("tmp{}-{seq}", std::process::id()));
-        let write = || -> io::Result<()> {
-            let mut f = io::BufWriter::new(fs::File::create(&tmp)?);
+        write_atomic(path, |f| {
             f.write_all(MAGIC)?;
             f.write_all(&FORMAT_VERSION.to_le_bytes())?;
             let mut h = Fnv::new();
@@ -305,21 +312,13 @@ impl KorfTables {
                 f.write_all(&t.data)?;
                 h.update(&t.data);
             }
-            f.write_all(&h.0.to_le_bytes())?;
-            f.flush()?;
-            drop(f);
-            fs::rename(&tmp, path)
-        };
-        let result = write();
-        if result.is_err() {
-            let _ = fs::remove_file(&tmp);
-        }
-        result
+            f.write_all(&h.0.to_le_bytes())
+        })
     }
 
     /// Read tables written by [`save`](Self::save), checking sizes and checksum.
     pub fn load(path: &Path) -> io::Result<Self> {
-        let bad = |msg: &str| io::Error::new(io::ErrorKind::InvalidData, msg.to_string());
+        let bad = invalid;
         let mut f = io::BufReader::new(fs::File::open(path)?);
         let mut head = [0u8; 12];
         f.read_exact(&mut head)?;
@@ -370,48 +369,74 @@ impl KorfTables {
     }
 }
 
-/// 64-bit FNV-1a, enough to detect truncated or corrupted cache files.
-struct Fnv(u64);
-
-impl Fnv {
-    fn new() -> Self {
-        Self(0xcbf2_9ce4_8422_2325)
-    }
-    fn update(&mut self, bytes: &[u8]) {
-        for &b in bytes {
-            self.0 = (self.0 ^ b as u64).wrapping_mul(0x0100_0000_01b3);
-        }
-    }
-}
-
-/// Directory for cached tables: `$GPSS_CACHE_DIR`, else `$XDG_CACHE_HOME/gpss`, else
-/// `$HOME/.cache/gpss`. `GPSS_CACHE_DIR=""` disables caching.
-pub fn cache_dir() -> Option<PathBuf> {
-    if let Some(d) = std::env::var_os("GPSS_CACHE_DIR") {
-        return (!d.is_empty()).then(|| PathBuf::from(d));
-    }
-    if let Some(d) = std::env::var_os("XDG_CACHE_HOME").filter(|d| !d.is_empty()) {
-        return Some(PathBuf::from(d).join("gpss"));
-    }
-    std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache").join("gpss"))
-}
-
 /// The process-wide tables, loaded from [`cache_dir`] or built on first use.
 pub fn tables() -> &'static KorfTables {
     static T: OnceLock<KorfTables> = OnceLock::new();
     T.get_or_init(|| KorfTables::load_or_build(cache_dir().as_deref()))
 }
 
-/// Korf's heuristic as a [`Heuristic`] for the generic searches.
-#[derive(Clone, Copy)]
+/// One extra pattern-database lookup of [`KorfHeuristic`]: the edge tables read on the
+/// position conjugated by symmetry `sym` (see [`super::sym`]), inverted first if
+/// `inverse`. Conjugates and the inverse are exactly as far from solved as the position
+/// itself, so every such lookup is admissible (dual and symmetric lookups, [Felner05]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Lookup {
+    /// Symmetry index, `0..48`.
+    pub sym: u8,
+    /// Look up the inverse position.
+    pub inverse: bool,
+}
+
+/// Korf's heuristic as a [`Heuristic`] for the generic searches: the maximum of the
+/// corner table and the two edge tables, read on the position and on the extra
+/// [`Lookup`]s.
+#[derive(Clone)]
 pub struct KorfHeuristic {
     tables: &'static KorfTables,
+    lookups: Vec<Lookup>,
 }
 
 impl KorfHeuristic {
-    /// Uses the process-wide [`tables`], building or loading them if needed.
+    /// Uses the process-wide [`tables`], building or loading them if needed, with the
+    /// default extra lookups ([`KorfHeuristic::default_lookups`]).
     pub fn new() -> Self {
-        Self { tables: tables() }
+        Self::with_lookups(Self::default_lookups())
+    }
+
+    /// Korf's original heuristic: the three tables on the position only.
+    pub fn plain() -> Self {
+        Self::with_lookups(Vec::new())
+    }
+
+    /// The heuristic with the given extra lookups.
+    pub fn with_lookups(lookups: Vec<Lookup>) -> Self {
+        Self {
+            tables: tables(),
+            lookups,
+        }
+    }
+
+    /// The default extra lookups; see `docs/theory/korf-optimal-3x3.md` for how they
+    /// were chosen.
+    ///
+    /// They are the inverse and the two conjugates by the URF-diagonal rotation
+    /// ([`super::sym::urf3`] and its square), which read the edge tables along the R-L
+    /// and F-B axes as well as the U-D axis.
+    pub fn default_lookups() -> Vec<Lookup> {
+        let s1 = super::sym::urf3();
+        let s2 = super::sym::tables().mult[s1][s1] as usize;
+        [(0, true), (s1, false), (s2, false)]
+            .into_iter()
+            .map(|(sym, inverse)| Lookup {
+                sym: sym as u8,
+                inverse,
+            })
+            .collect()
+    }
+
+    /// The extra lookups in use.
+    pub fn lookups(&self) -> &[Lookup] {
+        &self.lookups
     }
 }
 
@@ -423,10 +448,50 @@ impl Default for KorfHeuristic {
 
 impl Heuristic<Cube3> for KorfHeuristic {
     fn name(&self) -> String {
-        "korf".into()
+        if self.lookups.is_empty() {
+            "korf".into()
+        } else {
+            format!("korf+{}sym", self.lookups.len())
+        }
     }
     fn estimate(&self, state: &Cube3State) -> u32 {
-        self.tables.estimate(state) as u32
+        self.estimate_within(state, u32::MAX)
+    }
+    fn estimate_within(&self, state: &Cube3State, budget: u32) -> u32 {
+        let t = self.tables;
+        let mut h = t.estimate(state) as u32;
+        if h > budget || self.lookups.is_empty() {
+            return h;
+        }
+        let st = super::sym::tables();
+        let mut inv = None;
+        for l in &self.lookups {
+            // Corner distances are invariant under conjugation and inversion, so only
+            // the edge tables can add information.
+            let e = match (l.sym, l.inverse) {
+                (0, false) => continue,
+                (0, true) => t
+                    .edges_a
+                    .get(edges6_index_inverse(state, 0))
+                    .max(t.edges_b.get(edges6_index_inverse(state, 6))),
+                (s, inverse) => {
+                    let base = if inverse {
+                        inv.get_or_insert_with(|| state.inverse())
+                    } else {
+                        state
+                    };
+                    let c = st.conjugate_edges(base, s as usize);
+                    t.edges_a
+                        .get(edges6_index(&c, 0))
+                        .max(t.edges_b.get(edges6_index(&c, 6)))
+                }
+            };
+            h = h.max(e as u32);
+            if h > budget {
+                break;
+            }
+        }
+        h
     }
 }
 
@@ -446,6 +511,22 @@ mod tests {
         }
         assert_eq!(loc_rank(&[0, 1, 2, 3, 4, 5]), 0);
         assert_eq!(loc_rank(&[11, 10, 9, 8, 7, 6]), N_EDGE_LOC as u32 - 1);
+    }
+
+    #[test]
+    fn edges6_index_of_inverse_without_inverting() {
+        use crate::cube::random_scramble;
+        use rand::{rngs::StdRng, SeedableRng};
+        let mut rng = StdRng::seed_from_u64(9);
+        for len in 0..40 {
+            let s = Cube3State::SOLVED.then_all(&random_scramble(&mut rng, len));
+            for base in [0, 6] {
+                assert_eq!(
+                    edges6_index_inverse(&s, base),
+                    edges6_index(&s.inverse(), base)
+                );
+            }
+        }
     }
 
     #[test]

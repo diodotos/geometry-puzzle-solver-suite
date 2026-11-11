@@ -29,7 +29,13 @@ against Crossref, arXiv, AAAI's archive, or the author's own site.
   Databases.* Proceedings of the Fourteenth National Conference on Artificial Intelligence
   (AAAI-97), 1997. <https://cdn.aaai.org/AAAI/1997/AAAI97-109.pdf>.
   IDA* with a maximum over corner and edge pattern databases: the first optimal solutions
-  of random 3x3x3 positions. The planned 3x3x3 optimal solver follows this design.
+  of random 3x3x3 positions. Followed by `gpss_puzzles::cube3::korf`.
+- **[Fel05]** A. Felner, U. Zahavi, J. Schaeffer, R. C. Holte. *Dual Lookups in Pattern
+  Databases.* Proceedings of the Nineteenth International Joint Conference on Artificial
+  Intelligence (IJCAI-05), 2005, pp. 103-108.
+  In permutation puzzles the inverse ("dual") of a state is as far from the goal as the
+  state, so a pattern database may be consulted on both. Used, together with symmetric
+  lookups, by `gpss_puzzles::cube3::korf::KorfHeuristic`.
 - **[Rok13]** T. Rokicki, H. Kociemba, M. Davidson, J. Dethridge. *The Diameter of the
   Rubik's Cube Group Is Twenty.* SIAM Journal on Discrete Mathematics 27(2):1082-1105,
   2013. doi:10.1137/120867366. (Reprinted in SIAM Review 56(4):645-670, 2014,
@@ -44,7 +50,14 @@ against Crossref, arXiv, AAAI's archive, or the author's own site.
   the subgroup G1 = <U, D, R2, L2, F2, B2>, phase 2 solves within G1, and search continues
   over suboptimal phase-1 solutions to shorten the total. Also the source of the cubie
   and coordinate conventions (corner order `URF UFL ULB UBR DFR DLF DBL DRB`, "replaced-by"
-  move tables) used in `gpss_puzzles::cube2`. The planned 3x3x3 fast solver follows this.
+  move tables) used in `gpss_puzzles::cube2`. Followed by `gpss_puzzles::cube3::twophase`.
+- **[KocImp]** H. Kociemba. *Two-Phase Algorithm Details* (implementation notes).
+  <https://kociemba.org/math/imptwophase.htm>, with the symmetry pages linked from it.
+  The 48 cube symmetries and their numbering by `URF3`, `F2`, `U4`, `LR2`; the 16 `D4h`
+  symmetries preserving `G1`; flip x slice symmetry classes (64,430) x twist for phase 1
+  and corner-permutation classes x U/D-edge permutation for phase 2; distances stored
+  modulo 3; and searching three axes and the inverses. Followed by `gpss_puzzles::cube3`
+  `sym`, `symcoord` and `twophase`.
 - **[KocCE]** H. Kociemba. *Cube Explorer.* <http://kociemba.org/cube.htm>. Reference
   implementation of the two-phase algorithm.
 

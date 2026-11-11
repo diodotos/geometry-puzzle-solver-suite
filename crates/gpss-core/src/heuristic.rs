@@ -15,6 +15,20 @@ pub trait Heuristic<P: Puzzle + ?Sized> {
     /// Estimated distance from `state` to the goal.
     fn estimate(&self, state: &P::State) -> u32;
 
+    /// An estimate for a search that only needs to know whether the distance exceeds
+    /// `budget`.
+    ///
+    /// IDA* prunes a node when its estimate is above the remaining budget, so a
+    /// heuristic made of several lookups (e.g. a pattern database read on symmetric
+    /// variants of the state) may stop as soon as one of them exceeds `budget` and return
+    /// that partial maximum. The result must still be admissible, and must equal
+    /// [`Heuristic::estimate`] whenever that is at most `budget`. The default is
+    /// [`Heuristic::estimate`].
+    fn estimate_within(&self, state: &P::State, budget: u32) -> u32 {
+        let _ = budget;
+        self.estimate(state)
+    }
+
     /// Evaluate many states at once.
     ///
     /// Search algorithms that expand nodes in batches (batch weighted A*) call this so

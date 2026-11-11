@@ -35,6 +35,25 @@ The maximum of admissible heuristics is admissible. Korf used exactly these thre
   sizes and an FNV-1a checksum, and is written through a temporary file plus rename.
   Loading takes about 0.5 s. A corrupt or stale file is rebuilt, and setting
   `GPSS_CACHE_DIR=""` disables the cache.
+- **Symmetry and inverse lookups** (`korf::Lookup`, after Korf [Korf97] and the dual
+  lookups of [Fel05]): a position, its inverse and its conjugates by any of the 48
+  symmetries ([`cube3-symmetry.md`](cube3-symmetry.md)) are all the same distance from
+  solved, so the edge tables may be read on any of them and the maximum kept. The default
+  `KorfHeuristic::new()` adds three lookups to the plain one: the inverse, and the
+  conjugates by `URF3` and `URF3^2` (which move the U-D axis to R-L and F-B, so the two
+  6-edge sets are read "from the other sides"). The corner table is not re-read: the
+  corner distance is invariant under conjugation and inversion of the whole 8-corner
+  pattern. The inverse's edge index is read straight from the state
+  (`edges6_index_inverse`), and conjugates only conjugate the 12 edges.
+  - The extra lookups cost about as much as the plain one, so they only pay when they
+    are skipped most of the time. `Heuristic::estimate_within(state, budget)` (a
+    `gpss-core` trait method whose default is `estimate`) lets IDA* say how much it
+    needs: the heuristic returns as soon as the running maximum exceeds `budget`, which
+    is where IDA* would prune anyway. Most generated children are pruned by the plain
+    lookup alone. Without that early exit, the lookups made the search *slower* (fewer
+    nodes, more time per node).
+  - `KorfHeuristic::plain()` is the old heuristic, and `with_lookups` takes a custom
+    list (the timing example reads it from `KORF_LOOKUPS`, e.g. `0i,16,32`).
 - **Search**: the generic `IdaStar` from `gpss-core` with `KorfHeuristic`, so no 3x3-specific
   search code is involved. On the CLI:
   `gpss solve --puzzle cube3 --solver idastar --heuristic korf` (`korf` is the default
@@ -65,12 +84,37 @@ Each extra move multiplies the work by about 10-13, roughly the effective branch
 Random positions are usually 17-18 moves from solved [Rok13], so solving them optimally takes
 minutes to hours with these tables. For fast solutions use the two-phase solver.
 
+### Before and after symmetry lookups
+
+Measured with `cargo run --release -p gpss-puzzles --example cube3_timing -- korf 10 11 12 13`
+and `... korf 14` (8 random scrambles per length, seed 2, warm cache, one thread, 8-core
+Intel Xeon cloud VM). Optimal lengths are identical before and after.
+
+| Scramble length | Before: total / median / max | After: total / median / max | Mean expanded nodes, before -> after |
+|---|---|---|---|
+| 10 | 0.01 s / 0.000 s / 0.012 s | 0.01 s / 0.000 s / 0.005 s | 1,313 -> 441 |
+| 11 | 0.03 s / 0.003 s / 0.009 s | 0.02 s / 0.002 s / 0.005 s | 2,374 -> 1,170 |
+| 12 | 0.14 s / 0.023 s / 0.038 s | 0.10 s / 0.015 s / 0.029 s | 11,923 -> 6,532 |
+| 13 | 2.14 s / 0.287 s / 1.060 s | 0.99 s / 0.111 s / 0.374 s | 114,608 -> 64,184 |
+| 14 | 26.6 s / 1.18 s / 9.81 s | 15.9 s / 1.04 s / 5.85 s | 1,420,797 -> 815,320 |
+
+Choice of lookups, on another seed (lengths 12 and 13, 8 scrambles each, total time):
+
+| Lookups | Length 13 total | Mean expanded |
+|---|---|---|
+| plain | 4.12 s | 220,683 |
+| inverse | 2.80 s | 157,810 |
+| inverse + `URF3` + `URF3^2` (default) | 2.63 s | 123,655 |
+| the above + their inverses | 2.71 s | 109,098 |
+| inverse, without `estimate_within` | 6.41 s | 157,810 |
+
+More lookups keep cutting nodes but no longer cut time; the default is the knee.
+
 ## Not implemented yet (ordered by expected payoff)
 
 1. Larger edge tables: two 7-edge tables, 510M entries each, about 255 MB each at 4 bits.
-2. Symmetry and anti-symmetry: look up the position conjugated by the 48 cube symmetries,
-   and the inverse position, and take the maximum. Symmetry reduction would also shrink
-   the tables.
+2. Symmetry-reduced tables (one entry per symmetry class), which would make room for the
+   larger edge tables in the same memory.
 3. Coordinate-level IDA*: carry the coordinates incrementally through move tables instead
    of recomputing them from cubie states at every node. The node rate is currently about
    0.45 M nodes/s.
