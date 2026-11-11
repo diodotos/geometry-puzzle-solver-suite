@@ -136,3 +136,21 @@ def test_plot_progress(tmp_path):
     out = plot([f"a={tmp_path / 'a' / 'log.jsonl'}", str(tmp_path / "b" / "log.jsonl")], [str(tmp_path / "p.json")],
                tmp_path / "progress.png", "t")
     assert out.stat().st_size > 10_000
+
+
+def test_plot_rounds_resume_vs_warm_start(tmp_path, monkeypatch):
+    pytest.importorskip("matplotlib")
+    import matplotlib.axes
+    from gpss_train import plot as plot_mod
+
+    def write(name, updates):
+        recs = [dict(update=u, loss=0.1, target_mean=1.0, target_max=2.0, syncs=0, wall_s=u) for u in updates]
+        (tmp_path / name).write_text("\n".join(json.dumps(r) for r in recs))
+        return str(tmp_path / name)
+
+    xs = []
+    orig = matplotlib.axes.Axes.plot
+    monkeypatch.setattr(matplotlib.axes.Axes, "plot", lambda self, x, *a, **k: (xs.append(list(x)), orig(self, x, *a, **k))[1])
+    plot_mod.plot([write("a", [1, 2, 3]), write("resumed", [4, 5]), write("warm", [1, 2])], [], tmp_path / "o.png")
+    loss_x = [x for x in xs[::4]]
+    assert loss_x == [[1, 2, 3], [4, 5], [6, 7]]

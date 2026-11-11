@@ -45,7 +45,9 @@ def plot(logs: List[str], profiles: List[str], out: Path, title: str = "") -> Pa
     offset = 0
     for i, (name, recs) in enumerate(runs):
         c = colour.setdefault(name, COLOURS[i % len(COLOURS)])
-        rounds = [offset + r["update"] for r in recs]
+        # A warm start restarts at update 1; a resume into a new run dir keeps counting.
+        base = offset if recs and recs[0]["update"] <= 1 else 0
+        rounds = [base + r["update"] for r in recs]
         ax[0].plot(rounds, [r["loss"] for r in recs], color=c, label=f"{name}: training loss")
         if any("fresh_loss" in r for r in recs):
             ax[0].plot(rounds, [r.get("fresh_loss", float("nan")) for r in recs], color=c, ls="--",
@@ -53,7 +55,7 @@ def plot(logs: List[str], profiles: List[str], out: Path, title: str = "") -> Pa
         ax[1].plot(rounds, [r["target_mean"] for r in recs], color=c, label=name)
         ax[2].plot(rounds, [r["target_max"] for r in recs], color=c, label=name)
         ax[3].plot([r["wall_s"] / 3600 for r in recs], [r["syncs"] for r in recs], color=c, label=name)
-        offset = rounds[-1] if rounds else offset
+        offset = max(offset, rounds[-1]) if rounds else offset
     ax[0].set_ylim(0, 0.3)
     ax[0].set_title("Loss (MSE vs Bellman target)")
     ax[1].set_title("Mean Bellman target")
