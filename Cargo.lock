@@ -335,6 +335,7 @@ dependencies = [
  "gpss-core",
  "gpss-puzzles",
  "ort",
+ "proptest",
  "rand 0.8.8",
  "serde",
  "serde_json",

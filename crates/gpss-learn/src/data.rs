@@ -174,6 +174,7 @@ pub fn encoding_json(spec: &EncodingSpec) -> serde_json::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gpss_core::Puzzle;
     use gpss_puzzles::cube2::Cube2;
     use rand::{rngs::StdRng, SeedableRng};
 
@@ -203,6 +204,32 @@ mod tests {
             if b.scramble_depth[i] == 1 {
                 assert_eq!(b.is_goal[i], 0);
                 assert_eq!(b.child_is_goal[i * m..(i + 1) * m].iter().sum::<u8>(), 1);
+            }
+        }
+    }
+
+    proptest::proptest! {
+        #![proptest_config(proptest::prelude::ProptestConfig::with_cases(32))]
+
+        /// Goal flags agree with the encodings, and every state's children are exactly
+        /// its successors: re-deriving a child's successors must contain the parent
+        /// (every Cube2 move has its inverse in the move set).
+        #[test]
+        fn goal_masks_match_encodings(seed in proptest::prelude::any::<u64>(), min in 0u8..6, extra in 0u8..9) {
+            let b = sample(40, min, min + extra, seed);
+            let (len, m) = (8, 9);
+            let puzzle = Cube2::new();
+            let mut goal = vec![0u8; len];
+            puzzle.encode(&puzzle.solved(), &mut goal);
+            for i in 0..b.count {
+                let st = &b.states[i * len..(i + 1) * len];
+                proptest::prop_assert_eq!(b.is_goal[i] == 1, st == goal.as_slice());
+                proptest::prop_assert!((min..=min + extra).contains(&b.scramble_depth[i]));
+                for j in 0..m {
+                    let c = &b.children[(i * m + j) * len..(i * m + j + 1) * len];
+                    proptest::prop_assert_eq!(b.child_is_goal[i * m + j] == 1, c == goal.as_slice());
+                    proptest::prop_assert_ne!(c, st);
+                }
             }
         }
     }

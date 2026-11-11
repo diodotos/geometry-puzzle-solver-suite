@@ -28,3 +28,4 @@ ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, fea
 
 [dev-dependencies]
 gpss-puzzles.workspace = true
+proptest.workspace = true
