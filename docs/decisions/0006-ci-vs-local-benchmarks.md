@@ -1,6 +1,6 @@
 # 0006. CI checks correctness; benchmarks run on dedicated machines
 
-**Status:** Accepted
+**Status:** Accepted (refined by [0007](0007-bench-suite.md): deterministic search counters are now checked in CI)
 
 ## Context
 

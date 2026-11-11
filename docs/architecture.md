@@ -79,4 +79,4 @@ distinguishes "no solution exists" from "a limit was hit" and carries stats eith
 
 - `gpss-learn` - ONNX heuristic + batch weighted A* (feature-gated, needs ONNX Runtime).
 - `training/` (Python) - PyTorch DAVI trainer, ONNX export, AWS/GCP launchers.
-- `gpss-bench` - benchmark runner producing the reports in `docs/benchmarks/`.
+- `gpss-bench` - corpus-driven benchmark suite: CI counter baselines and the local reports in `docs/benchmarks/` (see [benchmarking.md](benchmarking.md)).

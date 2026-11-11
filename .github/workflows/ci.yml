@@ -23,6 +23,8 @@ jobs:
       - run: cargo test --release
       - name: Korf pattern databases (build + optimal solves)
         run: cargo test --release -p gpss-puzzles -- --ignored korf
+      - name: Benchmark counters vs committed baselines (machine-independent)
+        run: cargo run --release -p gpss-bench -- check
 
   conformance:
     name: Conformance (Rust CLI vs reference model)

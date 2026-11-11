@@ -19,6 +19,7 @@ written as a university final project, which is preserved unchanged in
 | `crates/gpss-core/` | Puzzle-agnostic traits (`Puzzle`, `Heuristic`, `Coordinate`, `Solver`) and search (BFS, A*, weighted A*, IDA*) plus pattern databases. **Must never depend on a concrete puzzle.** |
 | `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics; `cube3` = 3x3x3 cubie model, Kociemba coordinates (`cube3::coord`) and the two-phase solver (`cube3::twophase`), Korf's optimal heuristic (`cube3::korf`); `cuboid` = generic `AxBxC` sticker model (any cube or cuboid, single-layer turns) and its admissible `CornerHeuristic` (corner projection onto the `cube2` table). |
 | `crates/gpss-cli/` | The `gpss` binary. Thin: parses arguments, builds puzzle + solver, prints text or JSON. |
+| `crates/gpss-bench/` | Benchmark suite over the conformance corpus: correctness, counter baselines (`baselines/<puzzle>.json`, checked in CI), local latency/memory reports. Puzzle registrations live in `src/targets/`. Guide: [`docs/benchmarking.md`](docs/benchmarking.md). |
 | `conformance/` | Language-agnostic black-box test corpus and harness. Independent Python reference model. |
 | `legacy/cpp/` | The original C++ solver. Do not modify except to keep it building or to drop generated artefacts it regenerates itself. |
 | `docs/` | Architecture, decisions (ADRs), theory, testing, migration, roadmap, references. |
@@ -41,6 +42,12 @@ python3 conformance/generate_cube2.py
 python3 conformance/generate_cube3.py   # ~2 s
 python3 conformance/generate_cuboid.py  # <1 s
 python3 conformance/harness.py --impl gpss --solver twophase --corpus conformance/corpus/cube3.jsonl
+
+# Benchmark suite (docs/benchmarking.md)
+./target/release/gpss-bench check            # correctness + exact counters vs baselines (CI; ~15 s)
+./target/release/gpss-bench check --update   # accept intended counter changes; commit the JSON
+./target/release/gpss-bench run --puzzle cube2 \
+  --markdown docs/benchmarks/cube2-gpss-bench.md --json docs/benchmarks/data/cube2-gpss-bench.json
 
 # CLI
 ./target/release/gpss solve --scramble "R U2 F' R2 U F2 R' U' F R2 U" --solver idastar --heuristic dual
@@ -89,6 +96,11 @@ The harness needs only the Python 3.10+ standard library.
 - When you add a solver: implement `Solver<P>` in `gpss-core/src/search/`, report
   `SearchStats` faithfully (expanded / generated / peak stored / iterations), respect all
   `SearchLimits`, and add it to the table in `search/mod.rs` and `docs/theory/search.md`.
+- When you add a puzzle or solver, also register it in `crates/gpss-bench/src/targets/`
+  (a `Workload` plus `SolverSpec`s; see [`docs/benchmarking.md`](docs/benchmarking.md)),
+  run `gpss-bench check --update`, and commit the baseline. Mark slow solvers with
+  `ci_max_depth`, non-optimal ones with `max_ratio` when a bound exists, and solvers with
+  run-to-run varying node counts with `nondeterministic()`.
 - When you cite an algorithm, add it to [`docs/references.md`](docs/references.md).
 
 ## Where things are going
@@ -105,7 +117,12 @@ batch heuristic evaluation, fixed-length state encodings.
   the "wrong" order of opposite faces. With only `U R F` there are no opposite pairs, so
   only the first rule matters for `Cube2`.
 - Coordinates are only valid in the fixed frame; `debug_assert!`s guard this.
-- Timing: CI machines are noisy. Use the harness or local benchmarks on a quiet machine
+- Timing: CI machines are noisy. Use the harness or `gpss-bench run` on a quiet machine
   for performance claims and record the machine in the report.
+- A `gpss-bench` counter diff in CI is a behaviour change, not flakiness: counters are
+  deterministic. Don't `--update` the baseline without understanding why the counters moved,
+  and say why in the PR.
+- `gpss-bench` peak heap is requested bytes from a counting allocator, not RSS; RSS
+  comparisons come from `conformance/harness.py`.
 - The legacy C++ returns no solution for an empty scramble and aborts (SIGABRT) on
   malformed notation; see `conformance/known_deviations.json`. Don't port those behaviours.

@@ -12,6 +12,7 @@
   - [kociemba-two-phase.md](theory/kociemba-two-phase.md) - planned
   - [deepcubea.md](theory/deepcubea.md) - planned learned solver
 - [testing.md](testing.md) - test layers, corpus, CI
+- [benchmarking.md](benchmarking.md) - `gpss-bench`: counter baselines, local reports, adding puzzles
 - [benchmarks/](benchmarks/) - committed benchmark reports
 - [migration.md](migration.md) - the C++ -> Rust migration
 - [roadmap.md](roadmap.md)
