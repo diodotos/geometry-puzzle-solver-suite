@@ -21,6 +21,7 @@ written as a university final project, which is preserved unchanged in
 | `crates/gpss-learn/` | Learned heuristics: training-data generator (`gpss scramble-data`), weights manifests, `OnnxHeuristic` (feature `onnx`, ONNX Runtime loaded at run time), exact evaluation. |
 | `training/` | Python/PyTorch DAVI trainer, ONNX export, `local`/`aws`/`gcp` launchers (`python -m gpss_train`, wrapped by `gpss train`). See `docs/training.md`. |
 | `weights/` | Shipped networks: `<puzzle>/<name>.onnx` + `.json` manifest (encoding spec, checksum, training config, evaluation). |
+| `crates/gpss-viz/` | Renderer-independent viewer model for cuboids: sticker geometry, turn animation, picking, drag-to-turn, playback timeline, input `Controller`, solver hand-off. No GPU code (ADR 0010). |
 | `crates/gpss-cli/` | The `gpss` binary. Thin: parses arguments, builds puzzle + solver, prints text or JSON. |
 | `crates/gpss-bench/` | Benchmark suite over the conformance corpus: correctness, counter baselines (`baselines/<puzzle>.json`, checked in CI), local latency/memory reports. Puzzle registrations live in `src/targets/`. Guide: [`docs/benchmarking.md`](docs/benchmarking.md). |
 | `conformance/` | Language-agnostic black-box test corpus and harness. Independent Python reference model. |
