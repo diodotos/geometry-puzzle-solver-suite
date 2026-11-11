@@ -15,3 +15,4 @@ mark superseded records as such.
 | [0004](0004-fixed-frame-cube2.md) | Search the 2x2x2 in a fixed frame with `U R F` moves | Accepted |
 | [0005](0005-learned-heuristics-as-heuristics.md) | Learned models plug in as heuristics; PyTorch -> ONNX | Accepted |
 | [0006](0006-ci-vs-local-benchmarks.md) | CI checks correctness; benchmarks run on dedicated machines | Accepted |
+| [0007](0007-bench-suite.md) | One benchmark suite, driven by the conformance corpus, with counter baselines in CI | Accepted |

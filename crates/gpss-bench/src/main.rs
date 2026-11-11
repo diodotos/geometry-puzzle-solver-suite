@@ -197,7 +197,11 @@ fn main() -> ExitCode {
             };
             let command = format!(
                 "cargo run --release -p gpss-bench -- {}",
-                std::env::args().skip(1).collect::<Vec<_>>().join(" ")
+                std::env::args()
+                    .skip(1)
+                    .map(|a| shell_quote(&a))
+                    .collect::<Vec<_>>()
+                    .join(" ")
             );
             let md = report::markdown(&report, &title, &command);
             match &markdown {
@@ -221,5 +225,15 @@ fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
+    }
+}
+
+/// Quote an argument for a POSIX shell if it contains anything but safe characters.
+fn shell_quote(arg: &str) -> String {
+    let safe = |c: char| c.is_ascii_alphanumeric() || "-_./=:,+".contains(c);
+    if !arg.is_empty() && arg.chars().all(safe) {
+        arg.to_string()
+    } else {
+        format!("'{}'", arg.replace('\'', "'\\''"))
     }
 }

@@ -1,6 +1,7 @@
 # Testing and benchmarking strategy
 
-Three layers, from fastest to most independent.
+Three layers, from fastest to most independent, plus the benchmark suite that spans
+correctness, regression counters and performance.
 
 ## 1. Unit and property tests (`cargo test --release`)
 
@@ -36,22 +37,33 @@ configuration you touch.
 
 ## 3. Benchmarks
 
-Machine-dependent numbers are produced on a quiet machine and committed as reports in
-[`docs/benchmarks/`](benchmarks/) with the machine description (ADR 0006). The harness
-already buckets by optimal depth (median, p95, max solve time; peak RSS). Planned:
+`crates/gpss-bench`, documented in [benchmarking.md](benchmarking.md) (ADR 0007). It
+reads the same corpus and runs every registered (puzzle, solver) pair in-process.
 
-- `gpss-bench`: in-process timing for sub-millisecond solves (many repetitions per case),
-  table build times, and per-node cost;
-- machine-independent counters (`expanded`, `generated`, `peak_stored`) tracked per depth,
-  which can safely run in CI as regression checks;
-- 3x3x3 buckets by optimal depth (up to 20 [Rok13]) and two-phase length/time trade-offs;
-- learned solvers: solution length vs optimal, nodes expanded, batch size vs latency.
+| part | where it runs | what it asserts or measures |
+|------|---------------|-----------------------------|
+| correctness | CI and local | rejects invalid input; returned moves solve the state; optimal solvers return exactly the proven optimum; nothing is shorter than the optimum; weighted solvers within their ratio; `Solution::optimal` matches `Solver::is_optimal` |
+| counter baselines | CI (`cargo test --release`, `gpss-bench check`) | per case: `length`, `expanded`, `generated`, `peak_stored`, `iterations` equal `crates/gpss-bench/baselines/<puzzle>.json` |
+| performance report | local, committed to [`docs/benchmarks/`](benchmarks/) | latency (median / p95 / max) per depth bucket (trivial / short / mid / top) and per exact depth, ns per expanded node, peak heap per solve, solver setup, PDB build time, move and heuristic-lookup cost, with the machine description |
+
+Process-level numbers (fresh process per case, peak RSS, the legacy C++) still come from
+the conformance harness ([`benchmarks/cube2-baseline.md`](benchmarks/cube2-baseline.md)).
+
+Still to come as the puzzles land: 3x3x3 buckets by optimal depth (up to 20 [Rok13]) and
+two-phase length/time trade-offs; learned solvers' solution length vs optimal, nodes
+expanded, and batch size vs latency.
 
 ## CI
 
-`.github/workflows/ci.yml`: fmt, clippy (`-D warnings`), tests, the full corpus against
-the Rust CLI (IDA* and A* with the dual heuristic; BFS up to depth 8), and a build plus
-short-range run of the legacy C++.
+`.github/workflows/ci.yml`: fmt, clippy (`-D warnings`), tests (including the
+`gpss-bench` counter baselines), `gpss-bench check` for a readable per-bucket summary, the
+full corpus against the Rust CLI (IDA* and A* with the dual heuristic; BFS up to depth 8),
+and a build plus short-range run of the legacy C++.
+
+If CI fails in `gpss-bench`: a correctness failure is a bug; a counter difference means
+the search explores differently. If that is intended, run
+`cargo run --release -p gpss-bench -- check --update` and commit the baseline with an
+explanation (see [benchmarking.md](benchmarking.md#baselines-and-the-ci-gate)).
 
 ## 3x3x3 corpus
 
