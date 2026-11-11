@@ -144,3 +144,15 @@ def test_launch_refuses_to_overwrite_existing_script(tmp_path, monkeypatch):
         confirm_and_launch(get_launcher("aws", rec), CFG, res("aws", budget_usd=100), execute=True,
                            assume_yes=True, show=lambda s: None)
     assert rec.calls == [] and (tmp_path / "gpss-bootstrap.sh").read_text() == "mine"
+
+
+def test_gcp_vm_deletes_itself_on_exit():
+    from gpss_train.launch.base import Resources
+    from gpss_train.launch.gcp import GcpLauncher
+
+    plan = GcpLauncher().plan(CFG, Resources("gcp", machine="g2-standard-4", bucket="gs://b/p",
+                                             region="us-central1-a", budget_usd=5))
+    script = plan.files["gpss-bootstrap.sh"]
+    assert """trap 'gcloud compute instances delete "$(hostname)" --zone us-central1-a --quiet; shutdown -h now' EXIT""" in script
+    cmd = plan.commands[0]
+    assert cmd[cmd.index("--scopes") + 1] == "storage-rw,compute-rw"

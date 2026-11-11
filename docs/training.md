@@ -195,7 +195,9 @@ All backends share one flow (ADR 0009): a cost/time **estimate**, the exact **pl
 (commands and VM bootstrap script), and a launch only with `--execute` plus an interactive
 `yes` (or `--yes`). Cloud launches also need `--budget-usd` and are refused when the
 estimate exceeds it. Each VM shuts itself down after `--max-hours` and is created so that
-shutdown deletes it; artefacts (checkpoint, log, ONNX + manifest) go to `--bucket`.
+shutdown deletes it (on GCP a guest shutdown only *stops* the VM and its disk keeps billing,
+so the bootstrap deletes its own instance on exit, and `--max-run-duration` with
+`--instance-termination-action=DELETE` is the provider-side backstop); artefacts (checkpoint, log, ONNX + manifest) go to `--bucket`.
 Training itself is stopped (`timeout --signal=INT`) 5-15 minutes before that deadline, so
 the last checkpoint is still exported and uploaded and the run can be resumed (a
 `TIME_LIMIT` file marks this). If training crashes instead, the last checkpoint is still
@@ -231,7 +233,8 @@ Prerequisites you set up yourself (nothing here touches credentials):
 - **AWS:** `aws` CLI configured (`aws configure` or SSO); an S3 bucket; an instance profile
   allowed to write to it (`--extra instance_profile=NAME`); optionally `--extra key_name=`.
 - **GCP:** `gcloud auth login`; a project (`--extra project=ID` or gcloud default); a GCS
-  bucket; optionally a VM service account (`--extra service_account=EMAIL`).
+  bucket; optionally a VM service account (`--extra service_account=EMAIL`). The VM's
+  account needs Storage write and Compute Instance Admin (the VM deletes itself on exit).
 
 Machine tables (prices, relative speeds) are in `launch/aws.py` and `launch/gcp.py`. The
 reference speed (1.0) is the 8-vCPU VM that trained the shipped weights; other speeds,

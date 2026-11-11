@@ -22,3 +22,14 @@ def test_export_manifest(tmp_path):
     assert hashlib.sha256(onnx_file.read_bytes()).hexdigest() == m["model"]["sha256"]
     assert m["model"]["input"] == "state" and m["model"]["output"] == "cost_to_go"
     assert any("Agostinelli" in r for r in m["references"])
+
+
+def test_one_hot_linear_training_path_matches_export_path():
+    import torch
+    from gpss_train.model import OneHotLinear
+
+    torch.manual_seed(0)
+    layer = OneHotLinear(20, 24, 64)
+    x = torch.randint(0, 24, (32, 20))
+    reference = layer.embed(x.long() + layer.offsets).sum(dim=1) + layer.bias
+    assert torch.allclose(layer(x), reference, atol=1e-5)

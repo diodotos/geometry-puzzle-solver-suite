@@ -7,8 +7,9 @@ shape with configurable widths; the 2x2x2 needs far less capacity than the 3x3x3
 The input is the categorical encoding produced by Rust (``int64[batch, len]``, values in
 ``0..classes``). The first layer is a one-hot linear layer implemented as an embedding
 lookup summed over positions, which is mathematically identical to
-``Linear(one_hot(x).flatten())`` but avoids materialising the one-hot tensor, and exports
-to ONNX as Gather + ReduceSum.
+``Linear(one_hot(x).flatten())`` but avoids materialising the one-hot tensor. Training uses
+``embedding_bag`` (no ``[batch, len, hidden]`` intermediate, which is 4 GB for a 3x3 batch);
+ONNX export uses the equivalent Gather + ReduceSum.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from dataclasses import asdict, dataclass
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 
 @dataclass
@@ -40,7 +42,10 @@ class OneHotLinear(nn.Module):
         nn.init.normal_(self.embed.weight, std=(1.0 / length) ** 0.5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.embed(x.long() + self.offsets).sum(dim=1) + self.bias
+        idx = x.long() + self.offsets
+        if torch.onnx.is_in_onnx_export():
+            return self.embed(idx).sum(dim=1) + self.bias
+        return F.embedding_bag(idx, self.embed.weight, mode="sum") + self.bias
 
 
 class ResidualBlock(nn.Module):

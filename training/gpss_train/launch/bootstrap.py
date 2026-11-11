@@ -18,14 +18,15 @@ def train_args(cfg: DaviConfig, run_dir: str) -> List[str]:
 
 
 def bootstrap_script(cfg: DaviConfig, *, repo: str, ref: str, max_hours: float, upload: str, artefacts: str,
-                     sync: str = "", exists: str = "", sync_minutes: int = 10) -> str:
+                     sync: str = "", exists: str = "", teardown: str = "", sync_minutes: int = 10) -> str:
     """A cloud-init/startup script: watchdog, toolchain, build, train, export, upload, power off.
 
     ``upload`` and ``sync`` are shell command templates with ``{src}``/``{dst}`` placeholders.
     With ``sync``, the run directory is mirrored to ``<artefacts>/run`` every ``sync_minutes``
     and restored from there before training (``exists`` is a ``{path}`` template that fails
     only when nothing is there; a failed restore of an existing checkpoint aborts the VM
-    rather than silently starting over). A spot/preemptible VM that is reclaimed (and
+    rather than silently starting over). ``teardown`` runs on exit before the power-off, for
+    providers where a guest shutdown only stops the VM. A spot/preemptible VM that is reclaimed (and
     deleted) loses at most that much work: relaunching the same plan resumes the run.
     """
     run_dir = "/opt/gpss/run"
@@ -57,7 +58,7 @@ touch $stop; pkill -P "$mirror_pid" -x sleep || true; wait "$mirror_pid" || true
 set -euxo pipefail
 # Kill switch 1: power off (= terminate/delete, see instance settings) after {max_hours} h.
 shutdown -h +{minutes}
-trap 'shutdown -h now' EXIT
+trap '{teardown + "; " if teardown else ""}shutdown -h now' EXIT
 export DEBIAN_FRONTEND=noninteractive HOME=/root
 # GPU (Deep Learning VM) images already ship these; skip the slow apt round-trip there.
 missing=0; for tool in cc git pip3 curl; do command -v "$tool" >/dev/null || missing=1; done

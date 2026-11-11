@@ -4,7 +4,9 @@ Prerequisites (yours, not ours): ``gcloud auth login``, a project
 (``--extra project=<id>`` or the gcloud default), a GCS bucket, and a service account the
 VM runs as that can write to it (``--extra service_account=<email>``). The VM is created
 with ``--max-run-duration`` and ``--instance-termination-action=DELETE``, a provider-side
-limit that holds even if the bootstrap script hangs.
+limit that holds even if the bootstrap script hangs. A guest ``shutdown`` only *stops* a GCE
+VM (its disk keeps billing), so on exit the bootstrap deletes its own instance first; the
+VM's service account therefore needs Compute Instance Admin.
 """
 
 from __future__ import annotations
@@ -46,7 +48,8 @@ class GcpLauncher(Launcher):
         artefacts = f"{res.bucket.rstrip('/')}/{cfg.puzzle}-davi"
         script = bootstrap_script(cfg, repo=res.repo, ref=res.ref, max_hours=res.max_hours,
                                   upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts,
-                                  exists="gcloud storage ls {path}", sync="gcloud storage rsync --recursive {src} {dst}")
+                                  exists="gcloud storage ls {path}", sync="gcloud storage rsync --recursive {src} {dst}",
+                                  teardown=f'gcloud compute instances delete "$(hostname)" --zone {zone} --quiet')
         cmd = [
             "gcloud", "compute", "instances", "create", "gpss-davi",
             "--zone", zone,
@@ -57,7 +60,7 @@ class GcpLauncher(Launcher):
             "--instance-termination-action", "DELETE",
             "--labels", "gpss=train",
             "--metadata-from-file", "startup-script=gpss-bootstrap.sh",
-            "--scopes", "storage-rw",
+            "--scopes", "storage-rw,compute-rw",
         ]
         if machine.gpu:
             cmd += ["--maintenance-policy", "TERMINATE"]
