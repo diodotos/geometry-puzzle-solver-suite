@@ -185,20 +185,24 @@ struct Ctx<'a> {
 }
 
 impl Ctx<'_> {
-    fn tick(&mut self) {
-        self.stats.expanded += 1;
+    /// Account for one expansion; returns false (and records why) if a limit is hit.
+    fn tick(&mut self) -> bool {
         if let Some(max) = self.limits.max_expanded {
             if self.stats.expanded >= max {
                 self.stop = Some("node limit reached");
+                return false;
             }
         }
         if self.stats.expanded % 4096 == 0 {
             if let Some(t) = self.limits.timeout {
                 if self.started.elapsed() >= t {
                     self.stop = Some("timeout");
+                    return false;
                 }
             }
         }
+        self.stats.expanded += 1;
+        true
     }
 
     fn done(&self) -> bool {
@@ -225,7 +229,9 @@ impl Ctx<'_> {
         if h as usize > togo {
             return;
         }
-        self.tick();
+        if !self.tick() {
+            return;
+        }
         for m in 0..18 {
             if self.done() {
                 return;
@@ -284,8 +290,7 @@ impl Ctx<'_> {
         if h as usize > togo {
             return false;
         }
-        self.tick();
-        if self.stop.is_some() {
+        if !self.tick() {
             return false;
         }
         for (j, &m) in P2_MOVES.iter().enumerate() {

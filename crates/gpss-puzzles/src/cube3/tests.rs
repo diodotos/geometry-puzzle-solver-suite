@@ -185,6 +185,18 @@ fn twophase_edge_cases() {
         cube.scrambled(&superflip).then_all(&sol.moves),
         Cube3State::SOLVED
     );
+    let one = SearchLimits {
+        max_expanded: Some(1),
+        ..SearchLimits::default()
+    };
+    let sol = cube.solve_scramble(&seq("R2"), &solver, &one).unwrap();
+    assert_eq!(sol.moves.len(), 1);
+    assert!(sol.stats.expanded <= 1);
+    let zero = SearchLimits {
+        max_expanded: Some(0),
+        ..SearchLimits::default()
+    };
+    assert!(cube.solve_scramble(&seq("R2"), &solver, &zero).is_err());
     let strict = SearchLimits {
         max_depth: Some(2),
         ..SearchLimits::default()
