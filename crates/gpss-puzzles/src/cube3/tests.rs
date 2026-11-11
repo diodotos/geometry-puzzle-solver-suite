@@ -70,6 +70,16 @@ fn superflip_flips_every_edge_in_place() {
 }
 
 #[test]
+fn out_of_range_orientations_are_invalid() {
+    let mut s = Cube3State::SOLVED;
+    s.co[0] = 3;
+    assert!(!s.is_valid());
+    let mut s = Cube3State::SOLVED;
+    s.eo[0] = 2;
+    assert!(!s.is_valid());
+}
+
+#[test]
 fn scramble_then_inverse_is_identity() {
     let mut rng = StdRng::seed_from_u64(7);
     for len in [0, 1, 5, 40] {

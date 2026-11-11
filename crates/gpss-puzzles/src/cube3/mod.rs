@@ -79,6 +79,8 @@ impl Cube3State {
         };
         perm_ok(&self.cp)
             && perm_ok(&self.ep)
+            && self.co.iter().all(|&x| x < 3)
+            && self.eo.iter().all(|&x| x < 2)
             && self.co.iter().map(|&x| x as u32).sum::<u32>() % 3 == 0
             && self.eo.iter().map(|&x| x as u32).sum::<u32>() % 2 == 0
             && parity(&self.cp) == parity(&self.ep)
