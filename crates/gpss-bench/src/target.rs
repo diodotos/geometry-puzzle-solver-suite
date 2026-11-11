@@ -87,6 +87,7 @@ pub struct SolverSpec<P: Puzzle> {
     id: String,
     build: SolverBuildFn<P>,
     ci_max_depth: Option<u32>,
+    max_depth: Option<u32>,
     deterministic: bool,
     max_ratio: Option<f64>,
 }
@@ -98,6 +99,7 @@ impl<P: Puzzle> SolverSpec<P> {
             id: id.into(),
             build: Box::new(build),
             ci_max_depth: None,
+            max_depth: None,
             deterministic: true,
             max_ratio: None,
         }
@@ -107,6 +109,13 @@ impl<P: Puzzle> SolverSpec<P> {
     /// which is too slow at the top of the 2x2x2 range). Full runs still cover them.
     pub fn ci_max_depth(mut self, depth: u32) -> Self {
         self.ci_max_depth = Some(depth);
+        self
+    }
+
+    /// Skip cases whose optimal length exceeds `depth`, or is unknown, in every scope (e.g.
+    /// uninformed IDA* on the 3x3x3, which never finishes a 20-move random scramble).
+    pub fn max_depth(mut self, depth: u32) -> Self {
+        self.max_depth = Some(depth);
         self
     }
 
@@ -446,10 +455,17 @@ impl<P: Puzzle> BenchTarget for Target<P> {
         if case.expect == Expect::Unknown {
             return false;
         }
-        match (scope, self.spec.ci_max_depth, case.optimal_length) {
-            (Scope::Ci, Some(max), Some(d)) => d <= max,
-            (Scope::Ci, Some(_), None) => case.expect == Expect::Reject,
-            _ => true,
+        let limit = match scope {
+            Scope::Ci => match (self.spec.ci_max_depth, self.spec.max_depth) {
+                (Some(a), Some(b)) => Some(a.min(b)),
+                (a, b) => a.or(b),
+            },
+            Scope::Full => self.spec.max_depth,
+        };
+        match (limit, case.optimal_length) {
+            (Some(max), Some(d)) => d <= max,
+            (Some(_), None) => case.expect == Expect::Reject,
+            (None, _) => true,
         }
     }
 

@@ -44,7 +44,7 @@ python3 conformance/generate_cuboid.py  # <1 s
 python3 conformance/harness.py --impl gpss --solver twophase --corpus conformance/corpus/cube3.jsonl
 
 # Benchmark suite (docs/benchmarking.md)
-./target/release/gpss-bench check            # correctness + exact counters vs baselines (CI; ~6 s)
+./target/release/gpss-bench check            # correctness + exact counters vs baselines (CI; ~15 s)
 ./target/release/gpss-bench check --update   # accept intended counter changes; commit the JSON
 ./target/release/gpss-bench run --puzzle cube2 \
   --markdown docs/benchmarks/cube2-gpss-bench.md --json docs/benchmarks/data/cube2-gpss-bench.json

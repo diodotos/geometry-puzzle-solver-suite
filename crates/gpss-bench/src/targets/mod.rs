@@ -6,10 +6,12 @@
 //! `docs/benchmarking.md` for a worked example.
 
 pub mod cube2;
+pub mod cube3;
 
 use crate::target::Registry;
 
 /// Register every puzzle known to the suite.
 pub fn register_all(registry: &mut Registry) {
     cube2::register(registry);
+    cube3::register(registry);
 }

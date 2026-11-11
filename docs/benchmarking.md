@@ -43,14 +43,14 @@ the numbers are meaningless.
 Latency for a 1-move solve and an antipode differ by orders of magnitude, so every number
 is reported per bucket of the case's proven optimal length:
 
-| bucket | cube2 depths | meaning |
-|--------|--------------|---------|
-| `trivial` | 0 | already solved (identity sequences, empty scramble) |
-| `short` | 1-5 | short-range solves |
-| `mid` | 6-9 | |
-| `top` | 10-11 | top of range; 11 is the 2x2x2 diameter (antipodes) |
-| `invalid` | - | `expect: reject` cases (timed as part of correctness only) |
-| `unbucketed` | - | valid cases without a known optimum |
+| bucket | cube2 depths | cube3 depths | meaning |
+|--------|--------------|--------------|---------|
+| `trivial` | 0 | 0 | already solved (identity sequences, empty scramble) |
+| `short` | 1-5 | 1-5 | short-range solves |
+| `mid` | 6-9 | 6-7 | |
+| `top` | 10-11 | >= 8 (superflip, 20) | top of range; 11 is the 2x2x2 diameter (antipodes), 20 the 3x3x3 one |
+| `invalid` | - | - | `expect: reject` cases (timed as part of correctness only) |
+| `unbucketed` | - | random | valid cases without a known optimum |
 
 Thresholds are per puzzle (`BucketScheme::new(short_max, mid_max)`) and match the corpus
 generator's `short` / `mid` / `top` tags; a corpus test asserts they agree. The Markdown
@@ -89,10 +89,12 @@ search, so it must be deliberate:
 - **Unexpected**: the summary names the cases and the old/new counters; treat it like a
   failing test.
 
-Scope rules that keep the gate fast (~6 s in release for cube2) and deterministic:
+Scope rules that keep the gate fast (~6 s for cube2 and ~9 s for cube3 in release) and deterministic:
 
 - `SolverSpec::ci_max_depth(d)` keeps cases with optimal length > d out of CI and out of
   the baseline (BFS on cube2 is capped at 8; it still runs on everything locally).
+- `SolverSpec::max_depth(d)` drops cases deeper than `d`, or with unknown optimum, from
+  every scope, for solvers that would take too long on them (Korf IDA* on cube3 random scrambles).
 - `SolverSpec::nondeterministic()` keeps a target's counters out of the baseline while
   still checking correctness, for solvers whose node counts depend on threads, random
   seeds or floating-point batch order (e.g. a GPU-batched learned heuristic).
@@ -138,12 +140,14 @@ solver which claims optimality but returns padded solutions is caught.
 
 Guidance for the planned puzzles and solvers:
 
-- **3x3x3 (Korf IDA\*, Kociemba two-phase).** Corpus optimal lengths for deep states come
-  from an optimal solver, so mark only proven lengths as `optimal_length`. Korf's PDBs
-  take long to build: register them with `.table(...)` so the build time is reported, and
-  keep CI on short-range cases with `ci_max_depth`. Two-phase is not optimal; give it
-  `max_ratio` and report length vs optimal from the latency tables (mean length is in
-  the counter summary).
+- **3x3x3.** `targets/cube3.rs` registers two-phase (validity and lower bound only; it
+  stops at the first solution of <= 20 moves, so there is no ratio bound) and
+  Korf's optimal IDA* (`idastar-korf`, `max_depth(7)`: exact-depth cases only). Corpus
+  optimal lengths for deep states come from an optimal solver, so mark only proven
+  lengths as `optimal_length`. Korf's tables are not a `PatternDatabase`, so their build
+  (or cache load) shows up under solver setup rather than the PDB table; in CI they come
+  from the cache the `korf` ignored test writes earlier in the same job. Two-phase
+  length vs optimal is visible as the mean length per bucket in the counter summary.
 - **Learned solvers (`gpss-learn`).** They can register from their own crate without this
   crate depending on them: add a `register` function there and call it from a
   feature-gated line in `targets::register_all`, or build a `Registry` in a test or a

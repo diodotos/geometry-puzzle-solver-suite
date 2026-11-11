@@ -8,7 +8,7 @@
 | C1+ | Generic NxNxN / MxNxK cuboids: sticker model, single-layer turns, half-turn-only axes, notation, conformance corpus (`docs/theory/cuboid.md`). Next: rotation canonicalisation, generic PDBs, wide turns, arbitrary cutting planes | Done (model); heuristics planned |
 | C2 | DeepCubeA: `Encodable` trait, scramble data generator, PyTorch DAVI trainer, ONNX export, `OnnxHeuristic`, batch weighted A*; shipped 2x2x2 weights evaluated against the perfect table | Planned |
 | C2+ | Cloud training launchers: `local`, AWS, GCP; cost estimate and confirmation before launch; 3x3x3 weights after a credible GPU run | Planned |
-| C3 | `gpss-bench`: in-process latency, memory, node counters per depth, for every puzzle and solver; counter baselines in CI ([guide](benchmarking.md)) | Done for 2x2x2; 3x3x3 and learned solvers register as they land |
+| C3 | `gpss-bench`: in-process latency, memory, node counters per depth, for every puzzle and solver; counter baselines in CI ([guide](benchmarking.md)) | Done: 2x2x2 (all solvers, committed report) and 3x3x3 (two-phase, Korf IDA* up to depth 7); learned solvers register as they land |
 | D | Arbitrary 3D geometry puzzles: a declarative description (pieces, cut planes, rotation axes and angles) compiled to a sticker-permutation `Puzzle`, solvable by complete search or self-play | Vision |
 
 ## The long-term idea

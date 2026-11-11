@@ -74,7 +74,8 @@ solved (checked against the published counts 1, 18, 243, 3240, 43239) meets a ra
 ball around the scramble. Superflip is included with its published optimum of 20.
 Long random scrambles have `optimal_length: null`; for those the harness checks only
 that the solution is correct. CI runs two-phase on the whole corpus and generic IDA*
-on cases of depth 5 or less.
+on cases of depth 5 or less through the CLI harness; `gpss-bench` additionally baselines
+two-phase on the whole corpus and Korf IDA* on every exact case (depth 7 or less).
 
 ## Cuboid corpus
 

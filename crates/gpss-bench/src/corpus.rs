@@ -262,18 +262,23 @@ mod tests {
     }
 
     #[test]
-    fn cube2_corpus_loads_and_matches_its_own_tags() {
-        let corpus = load("cube2").unwrap();
-        assert_eq!(corpus.cases.len(), 233);
-        let s = crate::targets::cube2::BUCKETS;
-        for c in &corpus.cases {
-            for (tag, b) in [
-                ("short", Bucket::Short),
-                ("mid", Bucket::Mid),
-                ("top", Bucket::Top),
-            ] {
-                if c.has_tag(tag) {
-                    assert_eq!(s.bucket(c), b, "{}", c.id);
+    fn corpora_load_and_buckets_match_their_tags() {
+        use crate::targets::{cube2, cube3};
+        for (name, cases, s) in [
+            ("cube2", 233, cube2::BUCKETS),
+            ("cube3", 117, cube3::BUCKETS),
+        ] {
+            let corpus = load(name).unwrap();
+            assert_eq!(corpus.cases.len(), cases, "{name}");
+            for c in &corpus.cases {
+                for (tag, b) in [
+                    ("short", Bucket::Short),
+                    ("mid", Bucket::Mid),
+                    ("top", Bucket::Top),
+                ] {
+                    if c.has_tag(tag) {
+                        assert_eq!(s.bucket(c), b, "{name} {}", c.id);
+                    }
                 }
             }
         }
