@@ -42,10 +42,12 @@ def bootstrap_script(cfg: DaviConfig, *, repo: str, ref: str, max_hours: float, 
         found = exists.format(path=shlex.quote(f"{artefacts}/run/checkpoint.pt"))
         mirror = f"""mkdir -p {run_dir}
 if {found} >/dev/null 2>&1; then {restore}; else echo 'no checkpoint to resume'; fi
-( while sleep {sync_minutes * 60}; do {push} || echo 'checkpoint mirror failed; retrying'; done ) &
+stop=/opt/gpss/stop-mirror
+( while [ ! -e $stop ]; do sleep {sync_minutes * 60}; [ -e $stop ] || {push} || echo 'checkpoint mirror failed; retrying'; done ) &
 mirror_pid=$!
 """
-        final_push = f"""kill "$mirror_pid" || true
+        final_push = f"""# Stop the mirror without killing an upload in flight (it could land after the final push).
+touch $stop; pkill -P "$mirror_pid" -x sleep || true; wait "$mirror_pid" || true
 {push} || echo 'final checkpoint mirror failed'
 """
     else:
