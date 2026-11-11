@@ -167,13 +167,13 @@ pub fn to_cube3(cuboid: &Cuboid, state: &CuboidState) -> Option<Cube3State> {
     let mut rename = [u8::MAX; 6];
     for (f, n) in NORMALS.iter().enumerate() {
         let c = state[slot(n.map(|x| 2 * x), f)?] as usize;
-        if rename[c] != u8::MAX {
+        if rename.get(c) != Some(&u8::MAX) {
             return None;
         }
         rename[c] = f as u8;
     }
     let colour = |pos: [i32; 3], face: usize| -> Option<usize> {
-        Some(rename[state[slot(pos, face)?] as usize] as usize)
+        Some(*rename.get(state[slot(pos, face)?] as usize)? as usize)
     };
     let corner_pos = |faces: &[usize]| {
         let mut p = [0; 3];
@@ -266,6 +266,9 @@ mod tests {
         let mut state = c.solved();
         state.swap(0, 1);
         state.swap(9, 30);
+        assert_eq!(to_cube3(&c, &state), None);
+        let mut state = c.solved();
+        state[0] = 6;
         assert_eq!(to_cube3(&c, &state), None);
     }
 }
