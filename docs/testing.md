@@ -52,3 +52,14 @@ already buckets by optimal depth (median, p95, max solve time; peak RSS). Planne
 `.github/workflows/ci.yml`: fmt, clippy (`-D warnings`), tests, the full corpus against
 the Rust CLI (IDA* and A* with the dual heuristic; BFS up to depth 8), and a build plus
 short-range run of the legacy C++.
+
+## 3x3x3 corpus
+
+`conformance/corpus/cube3.jsonl` (117 cases, from `conformance/generate_cube3.py`) is
+built from the same independent reference model. The 3x3x3 cannot be enumerated, so
+exact optimal distances (1..7) come from meet-in-the-middle: a radius-4 ball around
+solved (checked against the published counts 1, 18, 243, 3240, 43239) meets a radius-3
+ball around the scramble. Superflip is included with its published optimum of 20.
+Long random scrambles have `optimal_length: null`; for those the harness checks only
+that the solution is correct. CI runs two-phase on the whole corpus and generic IDA*
+on cases of depth 5 or less.

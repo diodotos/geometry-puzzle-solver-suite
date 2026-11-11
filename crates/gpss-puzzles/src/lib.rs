@@ -4,6 +4,7 @@
 //!
 //! * [`cube`] - notation shared by all cube-shaped puzzles (faces, turns, parsing).
 //! * [`cube2`] - the 2x2x2 "pocket cube", with pattern-database heuristics.
+//! * [`cube3`] - the 3x3x3 Rubik's Cube, with Kociemba's two-phase solver.
 //!
 //! Each puzzle module owns its state representation and its domain-specific
 //! heuristics; search lives entirely in `gpss-core`.
@@ -26,3 +27,4 @@
 
 pub mod cube;
 pub mod cube2;
+pub mod cube3;

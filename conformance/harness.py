@@ -6,7 +6,8 @@ independent sticker-level reference model (``reference/cube_model.py``):
 
 * ``expect: solve``  - the process exits 0, the returned move sequence is valid, applying
   ``scramble + solution`` leaves every face a single colour, and (for solvers declared
-  optimal) the solution length equals the corpus ``optimal_length``.
+  optimal) the solution length equals the corpus ``optimal_length``. A ``null``
+  ``optimal_length`` (long 3x3x3 scrambles) means only correctness is checked.
 * ``expect: reject`` - the process exits with a non-zero status *without crashing*
   (no signal) and returns no solution.
 
@@ -216,6 +217,8 @@ def check(case: dict, result: RunResult, model: CubeModel, optimal: bool) -> tup
         return False, f"solution not parseable: {exc}", len(tokens)
     if not model.is_solved_up_to_rotation(final):
         return False, f"solution does not solve the puzzle: {result.solution!r}", len(tokens)
+    if case.get("optimal_length") is None:
+        return True, "ok (optimal length unknown)", len(tokens)
     if optimal and len(tokens) != case["optimal_length"]:
         return False, f"length {len(tokens)} != optimal {case['optimal_length']}", len(tokens)
     if len(tokens) < case["optimal_length"]:
@@ -229,7 +232,7 @@ def load_cases(path: Path, args) -> List[dict]:
         wanted = set(args.tags.split(","))
         cases = [c for c in cases if wanted & set(c["tags"])]
     if args.max_depth is not None:
-        cases = [c for c in cases if c.get("optimal_length", 0) <= args.max_depth]
+        cases = [c for c in cases if c["expect"] != "solve" or (c.get("optimal_length") is not None and c["optimal_length"] <= args.max_depth)]
     if args.ids:
         wanted_ids = set(args.ids.split(","))
         cases = [c for c in cases if c["id"] in wanted_ids]
@@ -249,7 +252,7 @@ def summarize(outcomes: List[Outcome]) -> dict:
         d = o.case.get("optimal_length")
         buckets.setdefault(d, []).append(o)
     rows = {}
-    for d in sorted(buckets):
+    for d in sorted(buckets, key=lambda k: (k is None, k or 0)):
         items = buckets[d]
         t = [o.result.reported_time_s if o.result.reported_time_s is not None else o.result.wall_s for o in items]
         w = [o.result.wall_s for o in items]
