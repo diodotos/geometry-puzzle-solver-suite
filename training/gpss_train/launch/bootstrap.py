@@ -95,6 +95,8 @@ esac
 python3 -m gpss_train export --checkpoint {run_dir}/checkpoint.pt --out {out}
 python3 -m gpss_train profile --checkpoint {run_dir}/checkpoint.pt --out /opt/gpss/out/profile.json \
   > /opt/gpss/out/profile.md || echo 'depth profile failed'
+python3 -m gpss_train plot --log {run_dir}/log.jsonl --profile /opt/gpss/out/profile.json \
+  --out /opt/gpss/out/progress.png || echo 'progress plot failed'
 cp -r {run_dir}/log.jsonl {run_dir}/config.json {run_dir}/checkpoint.pt /opt/gpss/weights/* /opt/gpss/out/
 {up}
 if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi

@@ -311,7 +311,8 @@ suggests the network needs many more updates, a sync rule tuned for this preset,
 
 `python -m gpss_train profile --checkpoint ck.pt` prints, per scramble depth, the mean
 prediction `J`, the mean Bellman target `y` from the target network, and the held-out MSE.
-Cloud runs write it to `profile.md` / `profile.json` next to the weights. On the pilot's
+Cloud runs write it to `profile.md` / `profile.json` next to the weights, together with
+`progress.png` from `python -m gpss_train plot` (see "Check run" below). On the pilot's
 final checkpoint (30,000 fresh states):
 
 | scramble depth | 1 | 5 | 10 | 15 | 20 | 25 | 30 |
@@ -340,6 +341,37 @@ the reference code), `sync_metric=fresh`, and a forced sync every 3 updates, whi
 about four times as often per hour. The next ~$5 check warm-starts from the pilot
 (`--init-from`) and passes if the depth-20+ `J` rises clearly above 12; if it stays flat,
 more sync frequency is not the fix and the bias itself needs attention.
+
+### Check run (warm start, tuned preset, ~2.7 L4-hours)
+
+One spot L4 (`us-central1-a`), warm-started from the pilot's final checkpoint with the new
+`cube3` preset and `--lr 3e-4`, stopped by its 3-hour limit after 149 updates (~65 s each:
+2.5 s data, ~52 s targets, ~10 s SGD) and 49 syncs, all forced every 3 updates (the held-out
+loss never got near 0.05). Depth profile on the same 30,000 fresh states as the pilot:
+
+| scramble depth | 1 | 5 | 10 | 15 | 20 | 25 | 30 |
+|---|---|---|---|---|---|---|---|
+| pilot mean `J` (update 145) | 1.12 | 4.73 | 9.33 | 11.17 | 11.74 | 11.96 | 12.02 |
+| check mean `J` (update 149) | 0.89 | 4.89 | 9.98 | 12.06 | 12.70 | 12.93 | 13.01 |
+| check mean `y - J` | +0.11 | -0.03 | -0.09 | +0.03 | +0.04 | +0.02 | +0.03 |
+
+Held-out MSE fell from 0.191 to 0.170, and shallow depths 2-5 became almost exact
+(MSE <= 0.014). The depth-20+ estimate rose by ~1 move, which passes the check's criterion,
+but almost all of the gain came in the first ~35 updates: the mean target went 9.48 -> 10.14
+by update 33 and stayed at 10.1-10.2 for the remaining ~115 updates and ~38 syncs. More
+frequent syncs therefore bought one step, not a trend; at depth 20+ the network is
+self-consistent (`y - J` ~ +0.03) at ~13 moves against a true 17-18. This points at the
+target itself, not the schedule: the downward bias of `min` over 18 noisy child estimates
+(held-out RMSE ~0.41), and possibly the training distribution (uniform scramble depth
+1-30, so most states are already near the saturated region).
+
+`python -m gpss_train plot --log pilot=a/log.jsonl --log check=b/log.jsonl --profile
+pilot=a/profile.json --profile check=b/profile.json --out progress.png` draws loss
+(training and held-out), mean and max target, syncs against GPU hours, and `J` by scramble
+depth; runs given in order are numbered continuously. It needs `matplotlib` (in
+`requirements.txt`); training never imports it.
+
+![Pilot and check run](benchmarks/cube3-davi-progress.png)
 
 ## Deviations from the paper
 

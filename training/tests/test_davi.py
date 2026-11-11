@@ -1,3 +1,4 @@
+import json
 import pytest
 import numpy as np
 import torch
@@ -118,3 +119,20 @@ def test_depth_profile(tmp_path):
     assert prof["update"] == 2 and sum(r["n"] for r in prof["depths"]) == 12
     assert [r["depth"] for r in prof["depths"]] == list(range(12))
     assert "| scramble depth |" in render(prof)
+
+
+def test_plot_progress(tmp_path):
+    pytest.importorskip("matplotlib")
+    from gpss_train.plot import load_log, plot
+    from gpss_train.profile import depth_profile
+
+    small = dict(states_per_update=16, iters_per_update=2, batch_size=8, hidden1=16, hidden2=8, blocks=1,
+                 loss_threshold=1e9)
+    train(DaviConfig(run_dir=str(tmp_path / "a"), updates=2, **small), source=FakeSource(), log=lambda s: None)
+    train(DaviConfig(run_dir=str(tmp_path / "b"), updates=2, sync_metric="fresh",
+                     init_from=str(tmp_path / "a" / "checkpoint.pt"), **small), source=FakeSource(), log=lambda s: None)
+    (tmp_path / "p.json").write_text(json.dumps(depth_profile(tmp_path / "b" / "checkpoint.pt", 12, source=FakeSource())))
+    assert [r["update"] for r in load_log(tmp_path / "a" / "log.jsonl")] == [1, 2]
+    out = plot([f"a={tmp_path / 'a' / 'log.jsonl'}", str(tmp_path / "b" / "log.jsonl")], [str(tmp_path / "p.json")],
+               tmp_path / "progress.png", "t")
+    assert out.stat().st_size > 10_000

@@ -5,3 +5,4 @@ onnx>=1.17
 onnxscript>=0.2
 onnxruntime>=1.22
 pytest>=8
+matplotlib>=3.7

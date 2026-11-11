@@ -4,6 +4,7 @@ Commands:
     train   run DAVI locally (resumable)
     export  checkpoint -> ONNX + weights manifest
     profile per-scramble-depth predictions, targets and held-out loss of a checkpoint
+    plot    training-progress charts from log.jsonl / profile.json files (needs matplotlib)
     report  render `gpss evaluate` JSON reports as Markdown
     launch  run training on local / aws / gcp with a cost estimate and confirmation
 """
@@ -64,6 +65,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_profile.add_argument("--seed", type=int, default=12345)
     p_profile.add_argument("--out", type=Path, default=None, help="also write the profile as JSON")
 
+    p_plot = sub.add_parser("plot", help="training-progress charts (loss, targets, syncs, depth profile)")
+    p_plot.add_argument("--log", action="append", required=True, metavar="[NAME=]LOG",
+                        help="log.jsonl; repeat for runs that continue one another, in order")
+    p_plot.add_argument("--profile", action="append", default=[], metavar="[NAME=]JSON")
+    p_plot.add_argument("--title", default="")
+    p_plot.add_argument("--out", type=Path, required=True)
+
     p_report = sub.add_parser("report", help="render `gpss evaluate` JSON as Markdown tables")
     p_report.add_argument("what", choices=["heuristic", "depth", "uniform-depth", "settings", "summary"])
     p_report.add_argument("reports", type=Path, nargs="+")
@@ -85,6 +93,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.command == "profile":
         from .profile import main as profile_main
         print(profile_main(args.checkpoint, args.states, args.seed, args.out))
+        return 0
+    if args.command == "plot":
+        from .plot import plot
+        print(plot(args.log, args.profile, args.out, args.title))
         return 0
     if args.command == "report":
         from .report import main as report_main
