@@ -119,7 +119,12 @@ def test_bootstrap_mirrors_and_restores_run_dir_for_spot():
     restore = f"gcloud storage rsync --recursive {remote} /opt/gpss/run"
     push = f"gcloud storage rsync --recursive /opt/gpss/run {remote}"
     # Restore before training, then mirror periodically in the background during it.
+    found = "gcloud storage ls gs://b/p/cube2-davi/run/checkpoint.pt"
+    assert f"if {found} >/dev/null 2>&1; then {restore}; else" in script
     assert script.index(restore) < script.index("while sleep 600; do " + push) < script.index("timeout")
+    # After training: stop the mirror and push the final checkpoint before export/upload.
+    final = script.index('kill "$mirror_pid"')
+    assert script.index("timeout") < final < script.index(push, final) < script.index("gpss_train export")
     assert "--resume" in script and "--provisioning-model" in cmd
     # GPU machines boot the Deep Learning VM image (NVIDIA driver) on a disk that fits it.
     assert cmd[cmd.index("--image-project") + 1] == "deeplearning-platform-release"

@@ -206,10 +206,11 @@ uses CUDA automatically when PyTorch sees a GPU.
 settings, delete) the VM at any time, so the bootstrap does not rely on the end-of-run upload:
 
 1. before training it restores `<bucket>/<puzzle>-davi/run/` into the run directory (if
-   present), and training always starts with `--resume`;
+   present; a failed restore of an existing checkpoint aborts instead of starting over), and
+   training always starts with `--resume`;
 2. during training a background loop mirrors the run directory (atomic `checkpoint.pt`,
    `log.jsonl`, `config.json`) back to that prefix every 10 minutes
-   (`gcloud storage rsync` / `aws s3 sync`).
+   (`gcloud storage rsync` / `aws s3 sync`), plus a final mirror once training stops.
 
 A reclaim therefore loses at most ~10 minutes of training. To continue, re-run the **same**
 launch command (same `--bucket` and `--puzzle`); the new VM picks the run up where the

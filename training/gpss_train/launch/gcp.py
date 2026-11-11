@@ -46,7 +46,7 @@ class GcpLauncher(Launcher):
         artefacts = f"{res.bucket.rstrip('/')}/{cfg.puzzle}-davi"
         script = bootstrap_script(cfg, repo=res.repo, ref=res.ref, max_hours=res.max_hours,
                                   upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts,
-                                  sync="gcloud storage rsync --recursive {src} {dst}")
+                                  exists="gcloud storage ls {path}", sync="gcloud storage rsync --recursive {src} {dst}")
         cmd = [
             "gcloud", "compute", "instances", "create", "gpss-davi",
             "--zone", zone,
