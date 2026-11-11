@@ -294,6 +294,10 @@ impl Ctx<'_> {
             }
             self.stats.generated += 1;
             self.path2.push(m);
+            self.stats.peak_stored = self
+                .stats
+                .peak_stored
+                .max(self.path1.len() + self.path2.len());
             if self.phase2(
                 t.cperm_mv[cp][j] as usize,
                 t.udeperm_mv[ud][j] as usize,
