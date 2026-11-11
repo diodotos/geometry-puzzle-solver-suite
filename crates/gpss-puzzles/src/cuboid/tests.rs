@@ -1,6 +1,6 @@
 use super::*;
 use gpss_core::search::{Bfs, IdaStar};
-use gpss_core::ZeroHeuristic;
+use gpss_core::{Heuristic, ZeroHeuristic};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
@@ -203,6 +203,118 @@ fn bfs_and_idastar_agree_on_cuboids() {
     }
 }
 
+fn face_turn_text(seq: &[crate::cube::FaceTurn]) -> String {
+    seq.iter()
+        .map(|m| m.to_string())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[test]
+fn corner_projection_matches_cube2() {
+    let cube2 = crate::cube2::Cube2::new();
+    let mut rng = StdRng::seed_from_u64(11);
+    for dims in ["2x2x2", "3x3x3", "4x4x4", "5x5x5"] {
+        let c = cuboid(dims);
+        assert_eq!(
+            c.corner_state(&c.solved()),
+            Some(crate::cube2::Cube2State::SOLVED)
+        );
+        for len in 0..16 {
+            let seq = crate::cube::random_scramble(&mut rng, len);
+            let mut moves = Vec::new();
+            for mv in c.parse_sequence(&face_turn_text(&seq)).unwrap() {
+                moves.push(mv);
+                if c.dims().layers(mv.axis) > 2 {
+                    // Inner slices never move corners.
+                    moves.push(LayerTurn {
+                        layer: 1,
+                        turns: 1,
+                        ..mv
+                    });
+                }
+            }
+            assert_eq!(
+                c.corner_state(&c.scrambled(&moves)),
+                Some(cube2.scrambled(&seq)),
+                "{dims} {}",
+                face_turn_text(&seq)
+            );
+        }
+    }
+}
+
+#[test]
+fn corner_projection_rejects_impossible_corners() {
+    let c = cuboid("3x3x3");
+    let urf = c.corners[0];
+    // URF's U sticker recoloured D: the remaining colours still name a real piece.
+    let mut s = c.solved();
+    s[urf[0] as usize] = 3;
+    assert_eq!(c.corner_state(&s), None);
+    // Two copies of the URF piece.
+    let mut s = c.solved();
+    for (dst, src) in c.corners[1].iter().zip(urf) {
+        s[*dst as usize] = c.solved()[src as usize];
+    }
+    assert_eq!(c.corner_state(&s), None);
+}
+
+#[test]
+fn corner_heuristic_is_perfect_on_2x2x2_and_zero_on_rotations() {
+    let c = cuboid("2x2x2");
+    let h = CornerHeuristic::new(&c);
+    let mut rng = StdRng::seed_from_u64(12);
+    for len in 0..14 {
+        let s = c.scrambled(&c.random_scramble(&mut rng, len));
+        let sol = IdaStar::new(CornerHeuristic::new(&c))
+            .solve(&c, &s, &SearchLimits::default())
+            .unwrap();
+        assert_eq!(h.estimate(&s) as usize, sol.moves.len());
+    }
+    for (dims, rotation) in [
+        ("3x3x3", "R 2R L'"),
+        ("4x4x4", "U 2U 3U 4U"),
+        ("3x3x2", "U 2U"),
+        ("2x3x4", "R2 2R2"),
+    ] {
+        let c = cuboid(dims);
+        let s = c.scrambled(&c.parse_sequence(rotation).unwrap());
+        assert!(c.is_solved(&s));
+        assert_eq!(CornerHeuristic::new(&c).estimate(&s), 0, "{dims}");
+    }
+}
+
+#[test]
+fn corner_heuristic_is_admissible_and_prunes() {
+    let mut rng = StdRng::seed_from_u64(13);
+    for (dims, max_len) in [
+        ("3x3x2", 5),
+        ("2x2x3", 5),
+        ("2x3x4", 4),
+        ("3x3x3", 4),
+        ("4x4x4", 3),
+    ] {
+        let c = cuboid(dims);
+        let h = CornerHeuristic::new(&c);
+        let (mut blind, mut informed) = (0, 0);
+        for len in 0..=max_len {
+            let s = c.scrambled(&c.random_scramble(&mut rng, len));
+            let limits = SearchLimits::default();
+            let a = IdaStar::new(ZeroHeuristic).solve(&c, &s, &limits).unwrap();
+            let b = IdaStar::new(CornerHeuristic::new(&c))
+                .solve(&c, &s, &limits)
+                .unwrap();
+            assert_eq!(a.moves.len(), b.moves.len(), "{dims}");
+            assert!(h.estimate(&s) as usize <= a.moves.len(), "{dims}");
+            assert!(c.is_solved(&c.apply_all(&s, &b.moves)));
+            blind += a.stats.expanded;
+            informed += b.stats.expanded;
+        }
+        assert!(informed < blind, "{dims}: {informed} >= {blind}");
+    }
+}
+
 proptest::proptest! {
     #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
 
@@ -230,5 +342,27 @@ proptest::proptest! {
         }
         let back: Vec<LayerTurn> = scramble.iter().rev().map(|&m| c.inverse(m)).collect();
         proptest::prop_assert!(c.is_solved(&c.apply_all(&s, &back)));
+    }
+}
+
+proptest::proptest! {
+    #![proptest_config(proptest::prelude::ProptestConfig::with_cases(64))]
+
+    /// The corner heuristic is consistent: one move changes it by at most 1.
+    #[test]
+    fn prop_corner_heuristic_is_consistent(
+        x in 2u8..=4, y in 2u8..=4, z in 2u8..=4,
+        seed in proptest::prelude::any::<u64>(),
+        len in 0usize..20,
+    ) {
+        let c = Cuboid::new(Dims::new(x, z, y));
+        let h = CornerHeuristic::new(&c);
+        let mut rng = StdRng::seed_from_u64(seed);
+        let s = c.scrambled(&c.random_scramble(&mut rng, len));
+        let hs = h.estimate(&s);
+        proptest::prop_assert!(c.corner_state(&s).is_some());
+        for &mv in c.moves() {
+            proptest::prop_assert!(h.estimate(&c.apply(&s, mv)).abs_diff(hs) <= 1);
+        }
     }
 }

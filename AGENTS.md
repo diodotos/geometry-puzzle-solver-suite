@@ -17,7 +17,7 @@ written as a university final project, which is preserved unchanged in
 | Path | What it is |
 |------|------------|
 | `crates/gpss-core/` | Puzzle-agnostic traits (`Puzzle`, `Heuristic`, `Coordinate`, `Solver`) and search (BFS, A*, weighted A*, IDA*) plus pattern databases. **Must never depend on a concrete puzzle.** |
-| `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics; `cube3` = 3x3x3 cubie model, Kociemba coordinates (`cube3::coord`) and the two-phase solver (`cube3::twophase`), Korf's optimal heuristic (`cube3::korf`); `cuboid` = generic `AxBxC` sticker model (any cube or cuboid, single-layer turns). |
+| `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics; `cube3` = 3x3x3 cubie model, Kociemba coordinates (`cube3::coord`) and the two-phase solver (`cube3::twophase`), Korf's optimal heuristic (`cube3::korf`); `cuboid` = generic `AxBxC` sticker model (any cube or cuboid, single-layer turns) and its admissible `CornerHeuristic` (corner projection onto the `cube2` table). |
 | `crates/gpss-cli/` | The `gpss` binary. Thin: parses arguments, builds puzzle + solver, prints text or JSON. |
 | `crates/gpss-bench/` | Benchmark suite over the conformance corpus: correctness, counter baselines (`baselines/<puzzle>.json`, checked in CI), local latency/memory reports. Puzzle registrations live in `src/targets/`. Guide: [`docs/benchmarking.md`](docs/benchmarking.md). |
 | `conformance/` | Language-agnostic black-box test corpus and harness. Independent Python reference model. |

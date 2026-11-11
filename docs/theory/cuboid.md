@@ -13,7 +13,7 @@ wings, ...) needs its own invariants and coordinates. A sticker (facelet) model 
 of this. A state is one colour byte per sticker, and every move is a precomputed sticker
 permutation derived from 3D geometry. The same ~300 lines of code then cover every size and
 shape. The cost is speed and memory: a 3x3x3 state is 54 bytes here, against 40 in `cube3`,
-and there are no pattern databases yet.
+and the only pattern database so far is the corner projection described below.
 
 ## Conventions
 
@@ -81,14 +81,52 @@ disconnects the search, because any pruned pair has an accepted equally short re
   up to rotation is the minimum of the ball distance over all rotations of the state. The
   corpus covers 2x2x2, 3x3x2, 2x2x3, 2x3x4, 3x3x3 and 4x4x4.
 
+## Heuristic: corner projection
+
+`CornerHeuristic` (`--heuristic corners`, the default for A* and IDA* on cuboids) is
+admissible and consistent for every `AxBxC`. The argument has three steps:
+
+1. **Every cuboid has exactly eight corner cubies.** Inner layers never touch them. An
+   outer-layer turn moves them exactly like the 2x2x2 face turn with the same name.
+2. **Projection.** `Cuboid::corner_state` reads the three corner stickers of each corner
+   position and returns a `cube2::Cube2State` in Kociemba's convention. The U/D facelet
+   comes first and the others follow clockwise. Every cuboid move maps to a 2x2x2 move or
+   to the identity. Half-turn-only axes simply have fewer moves. So the projected
+   distance, measured in the 2x2x2's half-turn metric, never exceeds the cuboid distance.
+3. **Goal.** A solved cuboid (every face one colour) has its corners solved up to a
+   whole-cube rotation. The heuristic therefore regrips the projection
+   (`Cube2::regrip`) and looks it up in the full 3.7 MB `cube2` distance table
+   (`cube2::FullCoord`). It is 0 on every solved orientation.
+
+The value is the exact distance of a relaxed problem, so it is also consistent: one move
+changes it by at most 1 (`prop_corner_heuristic_is_consistent`). On a 2x2x2 it is the
+perfect heuristic. The table is generated once per process (about 0.8 s, shared through a
+`OnceLock`), which dominates short CLI solves.
+
+Effect on IDA* (single runs on the 8 vCPU dev VM, `--timeout 60`):
+
+| puzzle | scramble | length | zero | corners |
+|---|---|---|---|---|
+| 3x3x2 | `U R2 F2 D' 2U L2 B2 U` | 7 | 3,984,282 expanded, 1.2 s | 14,219 expanded, 0.9 s |
+| 2x3x4 | `R2 U2 F2 2U2 L2 B2 3U2` | 7 | 673,868 expanded, 0.2 s | 43,030 expanded, 0.9 s |
+| 3x3x3 | `R U F D L B` | 6 | timeout (> 60 s) | 491 expanded, 0.9 s |
+| 4x4x4 | `2R U 3F' R2 2U' F` | 6 | timeout (> 60 s) | 470,733 expanded, 2.3 s |
+
+Wall times include the ~0.8 s table build, which is why the blind search wins on the
+easy 2x3x4 case.
+
+The heuristic knows nothing about edges or centres, so on 3x3x3 and larger it is weak:
+corners alone are solved within 11 moves, while 4x4x4 positions need far more. Stronger
+generic PDBs are the next step.
+
 ## Limits and next steps
 
-Without a heuristic, IDA* is only practical to about depth 5–6 on small cuboids. Planned
-work:
+With the corner heuristic, IDA* handles roughly 7–9 move positions on small cuboids and
+3x3x3. Deeper positions need more information. Planned work:
 
 1. Canonicalise states modulo whole-puzzle rotation, to shrink the space by up to 24x.
-2. Generic pattern databases over sticker subsets, e.g. corner stickers only, which every
-   cuboid has.
+2. More generic pattern databases over sticker subsets: edges, centres and wings for
+   larger cubes, combined with the corner projection by `MaxHeuristic` or additively.
 3. Wide turns and other move metrics (outer block turn metric).
 4. Generalise from axis-aligned layers to arbitrary cutting planes. This is the
    "arbitrary geometry" step.

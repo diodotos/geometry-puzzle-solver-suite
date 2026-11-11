@@ -22,7 +22,7 @@ use gpss_core::{Heuristic, ZeroHeuristic};
 use gpss_puzzles::cube::{parse_sequence, random_scramble};
 use gpss_puzzles::cube2::{Cube2, Cube2Heuristic, FullCoord, OrientationCoord, PermutationCoord};
 use gpss_puzzles::cube3::{Cube3, KorfHeuristic, TwoPhase};
-use gpss_puzzles::cuboid::{Cuboid, Dims};
+use gpss_puzzles::cuboid::{CornerHeuristic, Cuboid, Dims};
 use rand::{rngs::StdRng, SeedableRng};
 use serde_json::json;
 
@@ -252,17 +252,21 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
                 Ok(m) => m,
                 Err(e) => return fail(format, 2, "invalid_scramble", &e.to_string()),
             };
-            let h = req.heuristic.unwrap_or("zero");
-            if h != "zero" {
-                return unknown_heuristic(h);
-            }
+            let h = req.heuristic.unwrap_or(match req.solver {
+                SolverKind::Bfs => "zero",
+                _ => "corners",
+            });
+            let heuristic: Box<dyn Heuristic<Cuboid>> = match h {
+                "corners" if req.solver != SolverKind::Bfs => {
+                    Box::new(CornerHeuristic::new(&cuboid))
+                }
+                "zero" | "corners" => Box::new(ZeroHeuristic),
+                _ => return unknown_heuristic(h),
+            };
             let (solver, h_name): (Box<dyn Solver<Cuboid>>, Option<&str>) = match req.solver {
                 SolverKind::Bfs => (Box::new(Bfs), None),
-                SolverKind::Astar => (
-                    Box::new(AStar::weighted(ZeroHeuristic, req.weight)),
-                    Some(h),
-                ),
-                SolverKind::Idastar => (Box::new(IdaStar::new(ZeroHeuristic)), Some(h)),
+                SolverKind::Astar => (Box::new(AStar::weighted(heuristic, req.weight)), Some(h)),
+                SolverKind::Idastar => (Box::new(IdaStar::new(heuristic)), Some(h)),
                 SolverKind::Twophase => {
                     return fail(
                         format,
