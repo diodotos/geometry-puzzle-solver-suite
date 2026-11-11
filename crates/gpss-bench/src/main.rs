@@ -197,9 +197,13 @@ fn main() -> ExitCode {
             };
             if report.failure_count() > 0 {
                 // Don't overwrite a committed report with numbers from an incorrect build.
+                for t in &report.targets {
+                    for (id, reason) in &t.failures {
+                        eprintln!("FAIL {} {id}: {reason}", t.target);
+                    }
+                }
                 eprintln!(
-                    "{} correctness failures; no report written (run `gpss-bench check` for \
-                     details)",
+                    "{} correctness failures; no report written",
                     report.failure_count()
                 );
                 return ExitCode::from(1);
