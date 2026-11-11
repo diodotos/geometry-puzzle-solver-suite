@@ -108,7 +108,7 @@ def test_bootstrap_quotes_bucket_and_stops_training_before_kill_switch():
     assert "shutdown -h +120" in script and "timeout --signal=INT --kill-after=2m 105m" in script
     assert script.index("timeout") < script.index("gpss_train export") < script.index("aws s3 cp")
     # A crash (not the time limit) is marked and fails the bootstrap after the upload.
-    assert "124|137)" in script and "TRAINING_FAILED" in script
+    assert "  124) " in script and "137" not in script and "TRAINING_FAILED" in script
     assert script.rstrip().endswith('if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi')
 
 
