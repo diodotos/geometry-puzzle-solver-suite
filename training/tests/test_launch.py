@@ -170,3 +170,5 @@ def test_remote_init_from_is_fetched_before_training():
     # The depth profile runs after export and never fails the bootstrap.
     assert script.index("gpss_train export") < script.index("gpss_train profile") < script.index("cp -r")
     assert "|| echo 'depth profile failed'" in script
+    assert script.index("gpss_train profile") < script.index("gpss_train plot") < script.index("cp -r")
+    assert "|| echo 'progress plot failed'" in script
