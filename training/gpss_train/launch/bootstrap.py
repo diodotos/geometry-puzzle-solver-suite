@@ -45,8 +45,19 @@ cargo build --release -p gpss-cli
 export GPSS_BIN=/opt/gpss/src/target/release/gpss
 mkdir -p /opt/gpss/out
 cd training
-{{ timeout --signal=INT --kill-after=2m {train_minutes}m {train} || echo "training stopped early (exit $?); exporting the last checkpoint"; }} 2>&1 | tee /opt/gpss/out/train.log
+set +e
+timeout --signal=INT --kill-after=2m {train_minutes}m {train} 2>&1 | tee /opt/gpss/out/train.log
+status=${{PIPESTATUS[0]}}
+set -e
+# 124/137: stopped by the time limit (planned; resume later). Anything else is a training
+# failure: still export + upload the last checkpoint for diagnosis, but mark it and fail.
+case $status in
+  0) ;;
+  124|137) echo "time limit reached; uploading the last checkpoint" > /opt/gpss/out/TIME_LIMIT ;;
+  *) echo "training failed with exit $status" > /opt/gpss/out/TRAINING_FAILED ;;
+esac
 python3 -m gpss_train export --checkpoint {run_dir}/checkpoint.pt --out {out}
 cp -r {run_dir}/log.jsonl {run_dir}/config.json {run_dir}/checkpoint.pt /opt/gpss/weights/* /opt/gpss/out/
 {up}
+if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi
 """

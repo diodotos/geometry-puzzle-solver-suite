@@ -197,7 +197,9 @@ All backends share one flow (ADR 0009): a cost/time **estimate**, the exact **pl
 estimate exceeds it. Each VM shuts itself down after `--max-hours` and is created so that
 shutdown deletes it; artefacts (checkpoint, log, ONNX + manifest) go to `--bucket`.
 Training itself is stopped (`timeout --signal=INT`) 5-15 minutes before that deadline, so
-the last checkpoint is still exported and uploaded and the run can be resumed. The trainer
+the last checkpoint is still exported and uploaded and the run can be resumed (a
+`TIME_LIMIT` file marks this). If training crashes instead, the last checkpoint is still
+uploaded, next to a `TRAINING_FAILED` file, and the bootstrap exits with the error. The trainer
 uses CUDA automatically when PyTorch sees a GPU.
 
 Prerequisites you set up yourself (nothing here touches credentials):

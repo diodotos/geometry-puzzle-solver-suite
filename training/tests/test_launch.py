@@ -107,6 +107,9 @@ def test_bootstrap_quotes_bucket_and_stops_training_before_kill_switch():
     # Kill switch at 120 min; training is stopped at 105 min so export + upload still run.
     assert "shutdown -h +120" in script and "timeout --signal=INT --kill-after=2m 105m" in script
     assert script.index("timeout") < script.index("gpss_train export") < script.index("aws s3 cp")
+    # A crash (not the time limit) is marked and fails the bootstrap after the upload.
+    assert "124|137)" in script and "TRAINING_FAILED" in script
+    assert script.rstrip().endswith('if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi')
 
 
 def test_launch_refuses_to_overwrite_existing_script(tmp_path, monkeypatch):
