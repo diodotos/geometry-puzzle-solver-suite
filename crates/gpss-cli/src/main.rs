@@ -200,7 +200,7 @@ fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
             let h = req.heuristic.unwrap_or("korf");
             let heuristic: Box<dyn Heuristic<Cube3>> = match (req.solver, h) {
                 (SolverKind::Astar | SolverKind::Idastar, "korf") => Box::new(KorfHeuristic::new()),
-                (_, "zero") | (SolverKind::Bfs | SolverKind::Twophase, _) => {
+                (_, "zero") | (SolverKind::Bfs | SolverKind::Twophase, "korf") => {
                     Box::new(ZeroHeuristic)
                 }
                 _ => return unknown_heuristic(h),
