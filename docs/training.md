@@ -255,26 +255,32 @@ reference speed (1.0) is the 8-vCPU VM that trained the shipped weights; other s
 especially GPUs, are extrapolations and the estimate marks them as such. Check current
 provider prices before relying on the dollar figure.
 
-Status: the cloud backends are unit-tested with mocks and dry runs only. They have not been
-run against a real account yet.
+Status: the GCP backend has run real spot L4 pilots, including a reclaim followed by a
+resume on a fresh VM in another region (below). The AWS backend is unit-tested with mocks and
+dry runs only.
 
 ### Measured: 3x3x3 on one L4 (GCP spot pilot)
 
-`cube3` preset (15.4 M parameters), `g2-standard-4` spot in europe-west4, before the
-uint8-transfer/TF32 change:
+`cube3` preset (15.4 M parameters), `g2-standard-4` spot. "Before" is updates 3-19 in
+europe-west4, before the uint8-transfer/TF32 change (#12); "after" is updates 21-27 of the
+same run, resumed from the GCS mirror in us-central1 after the first VM was reclaimed.
 
-| per update (1 M states) | seconds |
-|---|---|
-| Rust data generation | 2.5 |
-| Bellman targets (18 M child evaluations) | 89 |
-| 250 SGD steps, batch 10,000 (~66 k states/s) | 38 |
-| **total** | **~128** |
+| per update (1 M states) | before (s) | after (s) |
+|---|---|---|
+| Rust data generation | 2.5 | 2.5 |
+| Bellman targets (18 M child evaluations) | 89 | 51.5 |
+| 250 SGD steps, batch 10,000 (remainder) | 38 | ~24 |
+| **total** | **~128** | **~78** |
 
-So ~110 updates fit in 4 h. Targets dominate, which is why `bellman_targets` ships the uint8
-encoding to the device and keeps results there, and TF32 matmuls are enabled on GPU.
+So ~185 updates (was ~110) fit in 4 h. The reclaim cost one update: the new VM restored
+`checkpoint.pt` (update 20) and continued with `--resume`. Targets still dominate.
 The first pilot also showed that the old `Embedding(...).sum(1)` first layer materialised a
 `[batch, 20, 5000]` tensor (24 GB at the target chunk size) and ran out of L4 memory; the
 layer now uses `embedding_bag` while training.
+
+With the `cube3` preset the loss stays around 0.05-0.08, so almost every sync is the
+forced one after 10 updates and the mean target depth grows by ~0.3-0.8 per sync (8.2 at
+update 20). Value propagation to depth ~20 therefore needs a few hundred updates.
 
 ## Deviations from the paper
 
