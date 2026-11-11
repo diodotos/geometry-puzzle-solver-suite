@@ -244,6 +244,24 @@ provider prices before relying on the dollar figure.
 Status: the cloud backends are unit-tested with mocks and dry runs only. They have not been
 run against a real account yet.
 
+### Measured: 3x3x3 on one L4 (GCP spot pilot)
+
+`cube3` preset (15.4 M parameters), `g2-standard-4` spot in europe-west4, before the
+uint8-transfer/TF32 change:
+
+| per update (1 M states) | seconds |
+|---|---|
+| Rust data generation | 2.5 |
+| Bellman targets (18 M child evaluations) | 89 |
+| 250 SGD steps, batch 10,000 (~66 k states/s) | 38 |
+| **total** | **~128** |
+
+So ~110 updates fit in 4 h. Targets dominate, which is why `bellman_targets` ships the uint8
+encoding to the device and keeps results there, and TF32 matmuls are enabled on GPU.
+The first pilot also showed that the old `Embedding(...).sum(1)` first layer materialised a
+`[batch, 20, 5000]` tensor (24 GB at the target chunk size) and ran out of L4 memory; the
+layer now uses `embedding_bag` while training.
+
 ## Deviations from the paper
 
 - Smaller network for the 2x2x2 (630k parameters instead of ~14.7M); same shape.
