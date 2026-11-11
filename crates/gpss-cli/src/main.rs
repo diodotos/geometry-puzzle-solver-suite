@@ -271,10 +271,21 @@ fn main() -> ExitCode {
             timeout,
             format,
         } => {
+            let timeout = match timeout.map(Duration::try_from_secs_f64).transpose() {
+                Ok(t) => t,
+                Err(_) => {
+                    return fail(
+                        format,
+                        2,
+                        "invalid_argument",
+                        "--timeout must be a finite number of seconds >= 0",
+                    )
+                }
+            };
             let limits = SearchLimits {
                 max_depth,
                 max_expanded,
-                timeout: timeout.map(Duration::from_secs_f64),
+                timeout,
             };
             solve(
                 puzzle, &scramble, solver, &heuristic, weight, limits, format,
