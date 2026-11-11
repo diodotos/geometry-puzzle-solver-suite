@@ -1,10 +1,10 @@
 //! `gpss-viewer`: the desktop viewer, or `gpss-viewer record` for headless videos.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use gpss_viewer::record::{self, Options};
+use gpss_viewer::record::{self, Gpu, Options};
 use gpss_viewer::render::{self, Renderer};
 
 #[derive(Parser)]
@@ -51,14 +51,19 @@ fn main() -> ExitCode {
             let opts = Options { out_dir: out, fps };
             let mut failed = false;
             for s in &scripts {
-                match record::record(&device, &queue, &mut renderer, s, &opts) {
+                let gpu = Gpu {
+                    device: &device,
+                    queue: &queue,
+                    renderer: &mut renderer,
+                };
+                match record::record(gpu, s, &opts) {
                     Ok(r) => {
                         println!(
                             "{}: {}/{} expectations passed -> {}",
                             r.name,
                             r.checked - r.failures.len(),
                             r.checked,
-                            r.video.display()
+                            r.video.as_deref().unwrap_or(Path::new("-")).display()
                         );
                         for f in &r.failures {
                             println!("  FAIL {f}");

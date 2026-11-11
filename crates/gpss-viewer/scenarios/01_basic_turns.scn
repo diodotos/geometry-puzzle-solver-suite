@@ -1,0 +1,111 @@
+# Basic layer turns on a 3x3x3: one drag per face and direction, slices, notation.
+# Drags run between sticker centres, so their direction is exact in world space.
+cuboid 3x3x3
+
+case 1.1 Drag F right column up
+note R: right layer turns clockwise seen from R (front column goes up)
+wait 0.4
+drag F@2,-2,2 F@2,2,2 0.5
+settle
+expect feedback turn R
+expect state R
+
+case 1.2 Drag F right column down
+note R': the same layer the other way
+reset
+wait 0.4
+drag F@2,2,2 F@2,-2,2 0.5
+settle
+expect state R'
+
+case 1.3 Drag F left column down
+note L: left layer clockwise seen from L (shown as its R-axis name 3R')
+reset
+wait 0.4
+drag F@-2,2,2 F@-2,-2,2 0.5
+settle
+expect feedback turn 3R'
+expect state L
+
+case 1.4 Drag F top row left
+note U: top layer clockwise seen from above
+reset
+wait 0.4
+drag F@2,2,2 F@-2,2,2 0.5
+settle
+expect feedback turn U
+expect state U
+
+case 1.5 Drag F bottom row right
+note D: bottom layer clockwise seen from below (3U')
+reset
+wait 0.4
+drag F@-2,-2,2 F@2,-2,2 0.5
+settle
+expect state D
+
+case 1.6 Drag U front row right
+note F: front layer clockwise seen from the front
+reset
+wait 0.4
+drag U@-2,2,2 U@2,2,2 0.5
+settle
+expect feedback turn F
+expect state F
+
+case 1.7 Drag R front column down
+note F again, grabbed on the R face: front layer clockwise
+reset
+wait 0.4
+drag R@2,2,2 R@2,-2,2 0.5
+settle
+expect state F
+
+case 1.8 Drag U back row left
+note B: back layer clockwise seen from behind (3F')
+reset
+wait 0.4
+drag U@2,2,-2 U@-2,2,-2 0.5
+settle
+expect state B
+
+case 1.9 Drag F middle column up
+note 2R: middle slice turned like R
+reset
+wait 0.4
+drag F@0,-2,2 F@0,2,2 0.5
+settle
+expect feedback turn 2R
+expect state 2R
+
+case 1.10 Drag F middle row left
+note 2U: equator slice turned like U
+reset
+wait 0.4
+drag F@2,0,2 F@-2,0,2 0.5
+settle
+expect state 2U
+
+case 1.11 Drag U middle row right
+note 2F: standing slice turned like F
+reset
+wait 0.4
+drag U@-2,2,0 U@2,2,0 0.5
+settle
+expect state 2F
+
+case 1.12 Notation input "R U R' U'"
+note Four queued turns animate one after another
+reset
+wait 0.4
+moves R U R' U'
+settle
+expect state R U R' U'
+
+case 1.13 Notation input "R2 U2"
+note Half turns animate as one 180 degree turn each
+reset
+wait 0.4
+moves R2 U2
+settle
+expect state R2 U2

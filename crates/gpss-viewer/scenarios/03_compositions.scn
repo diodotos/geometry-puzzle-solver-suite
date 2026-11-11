@@ -1,0 +1,82 @@
+# Compositions of interactions.
+cuboid 3x3x3
+
+case 3.1 Orbit to look from below, then drag a D sticker
+note Turns follow the grabbed sticker in any view: D right column towards the front = R
+wait 0.3
+drag 60,420 60,300 0.8
+wait 0.2
+drag D@2,-2,-2 D@2,-2,2 0.5
+settle
+expect state R
+
+case 3.2 Orbit to look from the back-left, then drag B
+note Dragging the B face's top row (left on screen) is B-face U: top layer clockwise
+reset
+home
+drag 630,470 316,470 1.0
+wait 0.2
+drag B@-2,2,-2 B@2,2,-2 0.5
+settle
+expect state U
+
+case 3.3 Orbit back to the front
+note Dragging right by the same distance orbits back to the starting view
+reset
+drag 316,470 630,470 1.0
+wait 0.3
+expect solved
+expect camera-moved
+expect no-feedback turn
+
+case 3.4 Two drags then two undos
+note R, U by drag; undo, undo plays them backwards to solved
+reset
+wait 0.3
+drag F@2,-2,2 F@2,2,2 0.4
+settle
+drag F@2,2,2 F@-2,2,2 0.4
+settle
+expect state R U
+undo
+settle
+undo
+settle
+expect solved
+expect feedback undo U
+
+case 3.5 Notation then a drag while it plays
+note "R U" queued, a drag adds F behind them: R U F
+reset
+wait 0.3
+moves R U
+drag U@-2,2,2 U@2,2,2 0.3
+settle
+expect state R U F
+
+case 3.6 Orbit while a turn animates
+note The turn finishes normally while the view moves
+reset
+moves R2 U2
+drag 60,420 200,420 0.8
+settle
+expect camera-moved
+expect state R2 U2
+
+case 3.7 Scramble then solve
+note Two-phase solution plays back to solved
+reset
+scramble 20 7
+wait 0.5
+expect unsolved
+solve
+settle
+expect feedback solution
+expect solved
+
+case 3.8 Undo after the solve
+note Undo takes back the last solver move
+undo
+settle
+expect unsolved
+expect feedback undo

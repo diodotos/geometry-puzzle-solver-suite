@@ -1,0 +1,192 @@
+# Contradictory, degenerate and racing inputs.
+cuboid 3x3x3
+
+case 4.1 Click a sticker without moving
+note No move; feedback says click
+wait 0.3
+press F@0,0,2
+wait 0.3
+release
+wait 0.3
+expect feedback click
+expect solved
+
+case 4.2 Drag 5 px (under the 8 px threshold)
+note Still a click: no move
+drag F@0,0,2 +5,0 0.3
+wait 0.3
+expect feedback click
+expect solved
+
+case 4.3 Exact diagonal drag on F
+note Ambiguous: no move, feedback says diagonal
+drag F@-2,-2,2 F@2,2,2 0.6
+wait 0.3
+expect feedback diagonal
+expect solved
+
+case 4.4 Drag up, then sideways, in one press
+note One press = at most one turn: R, then the sideways part is ignored
+press F@2,-2,2
+move F@2,2,2 0.4
+move F@-2,2,2 0.5
+release
+settle
+expect state R
+expect no-feedback turn U
+expect no-feedback ignored
+
+case 4.5 Drag from a sticker far off the cube
+note Turn R fires as usual; leaving the cube neither orbits nor adds a turn
+reset
+wait 0.2
+drag F@2,-2,2 +0,-260 0.7
+settle
+expect state R
+expect camera-still
+
+case 4.6 Drag from empty space across the cube
+note Orbit only: a press that starts off the cube never turns
+reset
+wait 0.2
+drag 80,240 560,240 0.8
+settle
+expect solved
+expect camera-moved
+expect no-feedback turn
+
+case 4.7 Right button pressed during a sticker drag
+note Second button ignored; the primary drag still turns R
+reset
+home
+wait 0.2
+press F@2,-2,2
+press +0,0 right
+move F@2,2,2 0.4
+release
+settle
+expect feedback ignored: a button is already down
+expect state R
+
+case 4.8 Release with no button down
+note Ignored
+release
+wait 0.3
+expect feedback ignored: no button was down
+
+case 4.9 Drag a new turn while one animates
+note Queued: R then U, in order
+reset
+wait 0.2
+drag F@2,-2,2 F@2,2,2 0.2
+drag F@2,0,2 F@-2,0,2 0.1
+settle
+expect state R 2U
+
+case 4.10 Undo during the animation of the same move
+note R finishes, then plays backwards: back to solved
+reset
+wait 0.2
+moves R
+wait 0.1
+undo
+settle
+expect solved
+expect feedback undo R
+
+case 4.11 Undo with nothing to undo
+note Ignored
+undo
+wait 0.3
+expect feedback ignored: nothing to undo
+
+case 4.12 User drag during solver playback
+note Remaining solver moves are dropped, the user's turn plays, cube stays unsolved
+reset
+scramble 20 11
+wait 0.3
+solve
+wait 1.2
+drag F@2,-2,2 F@2,2,2 0.3
+settle
+expect feedback playback interrupted
+expect unsolved
+
+case 4.13 Undo during solver playback
+note Remaining solver moves are dropped and the last shown move is undone
+scramble 20 12
+wait 0.3
+solve
+wait 1.2
+undo
+settle
+expect feedback playback interrupted
+expect feedback undo
+expect unsolved
+
+case 4.14 Solve pressed twice
+note Second press ignored while the first solve runs; one solution plays
+solve-latency 0.8
+scramble 15 13
+wait 0.3
+solve
+wait 0.2
+solve
+settle
+expect feedback ignored: a solve is already running
+expect solved
+
+case 4.15 Move while the solver is thinking
+note The late answer is for an old state: dropped; the cube keeps the user's move
+scramble 15 14
+wait 0.3
+solve
+wait 0.2
+moves R
+settle
+expect feedback solution dropped
+expect unsolved
+solve-latency 0
+
+case 4.16 Solve when already solved
+note No solve runs
+reset
+wait 0.2
+solve
+wait 0.3
+expect feedback already solved
+
+case 4.17 Scramble while a sequence is playing
+note Jump straight to the scramble; queued turns are discarded
+moves R U R U R U
+wait 0.2
+setup F2 B2
+settle
+expect state F2 B2
+
+case 4.18 Invalid notation
+note Rejected, nothing moves
+moves R Q
+wait 0.3
+expect feedback rejected
+expect state F2 B2
+
+case 4.19 Overfill the queue
+note Only 64 moves fit in the queue: 64 x R play (= identity), the last 6 are rejected
+reset
+moves R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R R
+expect feedback rejected: too many moves queued
+settle
+expect solved
+
+case 4.20 Zoom with the wheel during a sticker drag
+note The wheel zooms; the drag still produces its turn R
+reset
+wait 0.2
+press F@2,-2,2
+move +0,-20 0.1
+scroll 2
+move F@2,2,2 0.3
+release
+settle
+expect state R

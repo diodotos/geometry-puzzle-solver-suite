@@ -1,0 +1,43 @@
+# Non-cube cuboid: 3 wide, 3 deep, 2 tall. Only U/D layers can quarter-turn.
+cuboid 3x3x2
+
+case 5.1 Drag F right column up on 3x3x2
+note R-axis layers are 3x2: a quarter-turn gesture becomes the legal half turn R2
+wait 0.4
+drag F@2,-1,2 F@2,1,2 0.5
+settle
+expect feedback turn R2
+expect state R2
+
+case 5.2 Drag F top row left
+note U layer is 3x3: an ordinary quarter turn U
+reset
+wait 0.3
+drag F@2,1,2 F@-2,1,2 0.5
+settle
+expect state U
+
+case 5.3 Drag U front row right
+note F-axis layers are 3x2: half turn F2
+reset
+wait 0.3
+drag U@-2,1,2 U@2,1,2 0.5
+settle
+expect state F2
+
+case 5.4 Notation "R" on 3x3x2
+note Rejected: a quarter R is not a legal move here
+reset
+moves R
+wait 0.3
+expect feedback rejected
+expect solved
+
+case 5.5 Scramble and solve 3x3x2
+note IDA* solution plays back to solved
+scramble 12 3
+wait 0.5
+solve
+settle
+expect feedback solution
+expect solved

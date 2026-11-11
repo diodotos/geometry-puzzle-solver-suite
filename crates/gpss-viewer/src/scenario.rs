@@ -15,6 +15,7 @@
 //! drag <point> <point> <s> [right]   # press, move, release
 //! scroll <steps>
 //! moves <notation> | undo | reset | solve | scramble <len> <seed> | setup <notation>
+//! home                    # put the camera back to its starting view
 //! solve-latency <s>       # delay before a solve's answer is delivered (default 0)
 //! expect solved | expect unsolved | expect state <notation> | expect idle
 //! expect feedback <text>  # some feedback in this case contains <text>
@@ -24,7 +25,7 @@
 //!
 //! A `<point>` is `x,y` (pixels), `F@2,0,2` (centre of the sticker facing F on the cubie
 //! at doubled coordinates `2,0,2`, projected with the current camera), optionally followed
-//! by `+dx,dy` pixels; or `+dx,dy` alone, relative to where the current press started.
+//! by `+dx,dy` pixels (the sticker must be the one visible at its centre); or `+dx,dy` alone, relative to where the current press started.
 
 use std::fmt;
 
@@ -102,6 +103,8 @@ pub enum Command {
     Scramble(usize, u64),
     /// Jump to solved + moves.
     Setup(String),
+    /// Camera back to the starting view.
+    Home,
     /// Solver answer delay.
     SolveLatency(f32),
     /// Assertion.
@@ -193,6 +196,7 @@ pub fn parse(text: &str) -> Result<Vec<Command>, ParseError> {
             "solve" => Command::Solve,
             "scramble" => Command::Scramble(num(0)? as usize, num(1)? as u64),
             "setup" => Command::Setup(rest.to_string()),
+            "home" => Command::Home,
             "solve-latency" => Command::SolveLatency(num(0)?),
             "expect" => {
                 let (what, arg) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));

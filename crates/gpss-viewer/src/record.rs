@@ -17,7 +17,8 @@ use gpss_core::Puzzle;
 use gpss_puzzles::cuboid::{Cuboid, Dims};
 use gpss_viz::camera::OrbitCamera;
 use gpss_viz::controller::{Button, Controller, Feedback, Input};
-use gpss_viz::geom::vec3;
+use gpss_viz::geom::{half_extents, vec3};
+use gpss_viz::pick::pick;
 use gpss_viz::solve::{self, SolveError, SolveJob, Solved};
 
 use crate::render::Renderer;
@@ -41,11 +42,14 @@ pub struct Report {
     pub checked: usize,
     /// Expectations that failed, with their case.
     pub failures: Vec<String>,
-    /// The video.
-    pub video: PathBuf,
-    /// The log.
-    pub log: PathBuf,
+    /// The video, when rendered.
+    pub video: Option<PathBuf>,
+    /// The log file's path when rendered, else the log text itself.
+    pub log: String,
 }
+
+/// Frames held at the end of each case so its final state is visible.
+const CASE_HOLD: f32 = 0.7;
 
 const FACES: [(char, [i32; 3]); 6] = [
     ('U', [0, 1, 0]),
@@ -56,10 +60,18 @@ const FACES: [(char, [i32; 3]); 6] = [
     ('B', [0, 0, -1]),
 ];
 
+/// The GPU side of a recording; absent when only checking a script.
+pub struct Gpu<'a> {
+    /// Device.
+    pub device: &'a wgpu::Device,
+    /// Queue.
+    pub queue: &'a wgpu::Queue,
+    /// Renderer.
+    pub renderer: &'a mut Renderer,
+}
+
 struct Rec<'a> {
-    device: &'a wgpu::Device,
-    queue: &'a wgpu::Queue,
-    renderer: &'a mut Renderer,
+    gpu: Option<Gpu<'a>>,
     ctl: Controller,
     size: (u32, u32),
     fps: u32,
@@ -138,7 +150,28 @@ impl Rec<'_> {
             let text = f.to_string();
             let _ = writeln!(self.log, "{:7.3}s  feedback {text}", self.t());
             self.case_feedback.push(text.clone());
-            self.say("Feedback", text, 2.5);
+            let t = self.t();
+            let repeat = self
+                .subs
+                .iter_mut()
+                .rev()
+                .find(|s| s.2 == "Feedback" && s.0 == t);
+            match repeat {
+                Some(last) if last.3 == text || last.3.starts_with(&format!("{text}  x")) => {
+                    let n = last
+                        .3
+                        .rsplit("  x")
+                        .next()
+                        .and_then(|n| n.parse::<u32>().ok());
+                    let n = if last.3 == text {
+                        2
+                    } else {
+                        n.unwrap_or(1) + 1
+                    };
+                    last.3 = format!("{text}  x{n}");
+                }
+                _ => self.say("Feedback", text, 2.5),
+            }
         }
     }
 
@@ -201,16 +234,18 @@ impl Rec<'_> {
             self.feedback(fb);
         }
         self.flush_status(false);
-        self.renderer
-            .render(self.device, self.queue, &self.ctl, self.size);
-        let mut rgba = self.renderer.read_back(self.device, self.queue);
-        self.draw_cursor(&mut rgba);
-        let stdin = self
-            .ffmpeg
-            .as_mut()
-            .and_then(|c| c.stdin.as_mut())
-            .ok_or("ffmpeg closed")?;
-        stdin.write_all(&rgba).map_err(|e| format!("ffmpeg: {e}"))?;
+        if let Some(gpu) = self.gpu.as_mut() {
+            gpu.renderer
+                .render(gpu.device, gpu.queue, &self.ctl, self.size);
+            let mut rgba = gpu.renderer.read_back(gpu.device, gpu.queue);
+            self.draw_cursor(&mut rgba);
+            let stdin = self
+                .ffmpeg
+                .as_mut()
+                .and_then(|c| c.stdin.as_mut())
+                .ok_or("ffmpeg closed")?;
+            stdin.write_all(&rgba).map_err(|e| format!("ffmpeg: {e}"))?;
+        }
         self.frame += 1;
         self.ctl.tick(1.0 / self.fps as f32);
         Ok(())
@@ -251,6 +286,14 @@ impl Rec<'_> {
                     .camera
                     .project(world, self.viewport())
                     .ok_or_else(|| format!("sticker {face}@{pos:?} is behind the camera"))?;
+                let (o, d) = self.ctl.camera.ray(px, self.viewport());
+                let seen =
+                    pick(self.ctl.cuboid(), o, d).map(|h| self.ctl.cuboid().stickers()[h.sticker]);
+                if seen.map(|s| (s.pos, s.normal)) != Some((*pos, normal)) {
+                    return Err(format!(
+                        "sticker {face}@{pos:?} is not visible from this view"
+                    ));
+                }
                 Ok(px + Vec2::new(offset.0, offset.1))
             }
         }
@@ -332,7 +375,18 @@ impl Rec<'_> {
             match cmd {
                 Command::Cuboid(_) | Command::Size(..) => {}
                 Command::Case(title) => {
+                    if self.frame > 0 {
+                        self.frames(CASE_HOLD)?;
+                    }
                     let _ = writeln!(self.log, "\n{:7.3}s  CASE     {title}", self.t());
+                    let now = self.t();
+                    for sub in self
+                        .subs
+                        .iter_mut()
+                        .filter(|s| s.2 != "Status" && s.1 > now)
+                    {
+                        sub.1 = now;
+                    }
                     self.case = title.clone();
                     self.note.clear();
                     self.case_start = self.t();
@@ -395,6 +449,10 @@ impl Rec<'_> {
                     seed: *seed,
                 }),
                 Command::Setup(m) => self.input(Input::Setup(m.clone())),
+                Command::Home => {
+                    let _ = writeln!(self.log, "{:7.3}s  input    home view", self.t());
+                    self.ctl.camera = OrbitCamera::framing(half_extents(self.ctl.cuboid()));
+                }
                 Command::SolveLatency(s) => self.latency = *s,
                 Command::Expect(e) => self.check(e),
             }
@@ -473,14 +531,21 @@ impl Rec<'_> {
     }
 }
 
-/// Record one script.
-pub fn record(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    renderer: &mut Renderer,
-    script: &Path,
-    opts: &Options,
-) -> Result<Report, String> {
+/// Play one script through the controller and check its expectations, without rendering.
+pub fn check(script: &Path) -> Result<Report, String> {
+    let opts = Options {
+        out_dir: PathBuf::new(),
+        fps: 30,
+    };
+    play(None, script, &opts)
+}
+
+/// Record one script to `<out_dir>/<name>.mp4` and `<name>.log`.
+pub fn record(gpu: Gpu<'_>, script: &Path, opts: &Options) -> Result<Report, String> {
+    play(Some(gpu), script, opts)
+}
+
+fn play(gpu: Option<Gpu<'_>>, script: &Path, opts: &Options) -> Result<Report, String> {
     let text = std::fs::read_to_string(script).map_err(|e| format!("{}: {e}", script.display()))?;
     let cmds = scenario::parse(&text).map_err(|e| format!("{}: {e}", script.display()))?;
     let mut dims = Dims::new(3, 3, 3);
@@ -497,44 +562,48 @@ pub fn record(
         .unwrap_or_default()
         .to_string_lossy()
         .into_owned();
-    std::fs::create_dir_all(&opts.out_dir).map_err(|e| e.to_string())?;
     let video = opts.out_dir.join(format!("{name}.mp4"));
     let raw = opts.out_dir.join(format!("{name}.raw.mp4"));
     let ass_path = opts.out_dir.join(format!("{name}.ass"));
     let log_path = opts.out_dir.join(format!("{name}.log"));
-    let ffmpeg = Process::new("ffmpeg")
-        .args([
-            "-y",
-            "-loglevel",
-            "error",
-            "-f",
-            "rawvideo",
-            "-pix_fmt",
-            "rgba",
-            "-s",
-        ])
-        .arg(format!("{}x{}", size.0, size.1))
-        .args([
-            "-r",
-            &opts.fps.to_string(),
-            "-i",
-            "-",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-        ])
-        .args(["-crf", "18", "-pix_fmt", "yuv420p"])
-        .arg(&raw)
-        .stdin(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("cannot start ffmpeg: {e}"))?;
+    let ffmpeg = if gpu.is_some() {
+        std::fs::create_dir_all(&opts.out_dir).map_err(|e| e.to_string())?;
+        Some(
+            Process::new("ffmpeg")
+                .args([
+                    "-y",
+                    "-loglevel",
+                    "error",
+                    "-f",
+                    "rawvideo",
+                    "-pix_fmt",
+                    "rgba",
+                    "-s",
+                ])
+                .arg(format!("{}x{}", size.0, size.1))
+                .args([
+                    "-r",
+                    &opts.fps.to_string(),
+                    "-i",
+                    "-",
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
+                ])
+                .args(["-crf", "18", "-pix_fmt", "yuv420p"])
+                .arg(&raw)
+                .stdin(Stdio::piped())
+                .spawn()
+                .map_err(|e| format!("cannot start ffmpeg: {e}"))?,
+        )
+    } else {
+        None
+    };
     let ctl = Controller::new(Cuboid::new(dims), Vec2::new(size.0 as f32, size.1 as f32));
     let camera = ctl.camera;
     let mut rec = Rec {
-        device,
-        queue,
-        renderer,
+        gpu,
         ctl,
         size,
         fps: opts.fps,
@@ -543,7 +612,7 @@ pub fn record(
         press: None,
         latency: 0.0,
         solves: Vec::new(),
-        ffmpeg: Some(ffmpeg),
+        ffmpeg,
         subs: Vec::new(),
         status: None,
         log: format!(
@@ -559,7 +628,21 @@ pub fn record(
         failures: Vec::new(),
     };
     let result = rec.run(&cmds);
-    let mut child = rec.ffmpeg.take().expect("ffmpeg handle");
+    let summary = format!(
+        "\n{} expectations, {} failed",
+        rec.checked,
+        rec.failures.len()
+    );
+    let Some(mut child) = rec.ffmpeg.take() else {
+        result.map_err(|e| format!("{name}: {e}"))?;
+        return Ok(Report {
+            name,
+            checked: rec.checked,
+            failures: rec.failures,
+            video: None,
+            log: rec.log + &summary,
+        });
+    };
     drop(child.stdin.take());
     let status = child.wait().map_err(|e| e.to_string())?;
     if let Err(e) = result {
@@ -586,18 +669,42 @@ pub fn record(
         return Err(format!("{name}: ffmpeg subtitle pass failed"));
     }
     let _ = std::fs::remove_file(&raw);
-    let _ = writeln!(
-        rec.log,
-        "\n{} expectations, {} failed",
-        rec.checked,
-        rec.failures.len()
-    );
+    rec.log.push_str(&summary);
     std::fs::write(&log_path, &rec.log).map_err(|e| e.to_string())?;
     Ok(Report {
         name,
         checked: rec.checked,
         failures: rec.failures,
-        video,
-        log: log_path,
+        video: Some(video),
+        log: log_path.display().to_string(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every shipped scenario's expectations hold when played through the controller.
+    #[test]
+    fn shipped_scenarios_pass_without_rendering() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("scenarios");
+        let mut scripts: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.extension().is_some_and(|x| x == "scn"))
+            .collect();
+        scripts.sort();
+        assert!(!scripts.is_empty());
+        for s in scripts {
+            let r = check(&s).unwrap();
+            assert!(r.checked > 0, "{}", r.name);
+            assert!(
+                r.failures.is_empty(),
+                "{}: {:?}\n{}",
+                r.name,
+                r.failures,
+                r.log
+            );
+        }
+    }
 }
