@@ -15,9 +15,13 @@ use std::time::{Duration, Instant};
 use clap::{Parser, Subcommand, ValueEnum};
 use gpss_core::pdb::PatternDatabase;
 use gpss_core::puzzle::format_moves;
-use gpss_core::search::{AStar, Bfs, IdaStar, SearchError, SearchLimits, SearchStats, Solver};
-use gpss_puzzles::cube::{parse_sequence, random_scramble};
+use gpss_core::search::{
+    AStar, Bfs, IdaStar, SearchError, SearchLimits, SearchStats, Solution, Solver,
+};
+use gpss_core::ZeroHeuristic;
+use gpss_puzzles::cube::{parse_sequence, random_scramble, FaceTurn};
 use gpss_puzzles::cube2::{Cube2, Cube2Heuristic, FullCoord, OrientationCoord, PermutationCoord};
+use gpss_puzzles::cube3::{Cube3, TwoPhase};
 use rand::{rngs::StdRng, SeedableRng};
 use serde_json::json;
 
@@ -36,7 +40,10 @@ enum Format {
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum PuzzleKind {
+    /// 2x2x2 (fixed-frame, 9 moves).
     Cube2,
+    /// 3x3x3 (18 face turns).
+    Cube3,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -47,6 +54,8 @@ enum SolverKind {
     Astar,
     /// Iterative-deepening A* (optimal, memory O(depth)).
     Idastar,
+    /// Kociemba two-phase (cube3 only; fast, near-optimal).
+    Twophase,
 }
 
 #[derive(Subcommand)]
@@ -60,9 +69,13 @@ enum Command {
         scramble: String,
         #[arg(long, value_enum, default_value = "idastar")]
         solver: SolverKind,
-        /// zero | orientation | permutation | dual | perfect (ignored by bfs).
-        #[arg(long, default_value = "dual")]
-        heuristic: String,
+        /// cube2: zero | orientation | permutation | dual (default) | perfect.
+        /// cube3 (generic solvers): zero (default). Ignored by bfs and twophase.
+        #[arg(long)]
+        heuristic: Option<String>,
+        /// twophase: stop at the first solution with at most this many moves.
+        #[arg(long, default_value_t = 20)]
+        target_length: u32,
         /// Weight on h for weighted A* (1.0 = plain A*).
         #[arg(long, default_value_t = 1.0)]
         weight: f64,
@@ -112,28 +125,23 @@ fn fail(format: Format, code: u8, kind: &str, message: &str) -> ExitCode {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn solve(
-    _puzzle: PuzzleKind,
-    scramble: &str,
-    solver_kind: SolverKind,
-    heuristic: &str,
+struct Request<'a> {
+    scramble: &'a str,
+    solver: SolverKind,
+    heuristic: Option<&'a str>,
     weight: f64,
+    target_length: u32,
     limits: SearchLimits,
     format: Format,
-) -> ExitCode {
-    let moves = match parse_sequence(scramble) {
+}
+
+fn solve(puzzle: PuzzleKind, req: Request) -> ExitCode {
+    let format = req.format;
+    let moves = match parse_sequence(req.scramble) {
         Ok(m) => m,
         Err(e) => return fail(format, 2, "invalid_scramble", &e.to_string()),
     };
-    let Some(h_kind) = Cube2Heuristic::from_name(heuristic) else {
-        return fail(
-            format,
-            2,
-            "invalid_argument",
-            &format!("unknown heuristic {heuristic:?}"),
-        );
-    };
-    if !(weight.is_finite() && weight >= 1.0) {
+    if !(req.weight.is_finite() && req.weight >= 1.0) {
         return fail(
             format,
             2,
@@ -141,33 +149,106 @@ fn solve(
             "--weight must be a finite number >= 1",
         );
     }
-
-    let puzzle = Cube2::new();
-    let setup = Instant::now();
-    let (solver, h_name): (Box<dyn Solver<Cube2>>, Option<&str>) = match solver_kind {
-        SolverKind::Bfs => (Box::new(Bfs), None),
-        SolverKind::Astar => (
-            Box::new(AStar::weighted(h_kind.build(&puzzle), weight)),
-            Some(h_kind.name()),
-        ),
-        SolverKind::Idastar => (
-            Box::new(IdaStar::new(h_kind.build(&puzzle))),
-            Some(h_kind.name()),
-        ),
+    let unknown_heuristic = |h: &str| {
+        fail(
+            format,
+            2,
+            "invalid_argument",
+            &format!("unknown heuristic {h:?}"),
+        )
     };
-    let setup_s = setup.elapsed().as_secs_f64();
+    let setup = Instant::now();
+    match puzzle {
+        PuzzleKind::Cube2 => {
+            let h = req.heuristic.unwrap_or("dual");
+            let Some(h_kind) = Cube2Heuristic::from_name(h) else {
+                return unknown_heuristic(h);
+            };
+            let cube = Cube2::new();
+            let (solver, h_name): (Box<dyn Solver<Cube2>>, Option<&str>) = match req.solver {
+                SolverKind::Bfs => (Box::new(Bfs), None),
+                SolverKind::Astar => (
+                    Box::new(AStar::weighted(h_kind.build(&cube), req.weight)),
+                    Some(h_kind.name()),
+                ),
+                SolverKind::Idastar => (
+                    Box::new(IdaStar::new(h_kind.build(&cube))),
+                    Some(h_kind.name()),
+                ),
+                SolverKind::Twophase => {
+                    return fail(
+                        format,
+                        2,
+                        "invalid_argument",
+                        "--solver twophase requires --puzzle cube3",
+                    )
+                }
+            };
+            let setup_s = setup.elapsed().as_secs_f64();
+            let result = cube.solve_scramble(&moves, solver.as_ref(), &req.limits);
+            report(
+                "cube2",
+                &solver.name(),
+                h_name,
+                &moves,
+                setup_s,
+                result,
+                format,
+            )
+        }
+        PuzzleKind::Cube3 => {
+            let h = req.heuristic.unwrap_or("zero");
+            if h != "zero" {
+                return unknown_heuristic(h);
+            }
+            let cube = Cube3::new();
+            let (solver, h_name): (Box<dyn Solver<Cube3>>, Option<&str>) = match req.solver {
+                SolverKind::Bfs => (Box::new(Bfs), None),
+                SolverKind::Astar => (
+                    Box::new(AStar::weighted(ZeroHeuristic, req.weight)),
+                    Some(h),
+                ),
+                SolverKind::Idastar => (Box::new(IdaStar::new(ZeroHeuristic)), Some(h)),
+                SolverKind::Twophase => {
+                    TwoPhase::warm_up();
+                    (Box::new(TwoPhase::new(req.target_length)), None)
+                }
+            };
+            let setup_s = setup.elapsed().as_secs_f64();
+            let result = cube.solve_scramble(&moves, solver.as_ref(), &req.limits);
+            report(
+                "cube3",
+                &solver.name(),
+                h_name,
+                &moves,
+                setup_s,
+                result,
+                format,
+            )
+        }
+    }
+}
 
-    match puzzle.solve_scramble(&moves, solver.as_ref(), &limits) {
+fn report(
+    puzzle: &str,
+    solver: &str,
+    h_name: Option<&str>,
+    moves: &[FaceTurn],
+    setup_s: f64,
+    result: Result<Solution<FaceTurn>, SearchError>,
+    format: Format,
+) -> ExitCode {
+    match result {
         Ok(sol) => {
             let text = format_moves(&sol.moves);
             match format {
                 Format::Json => println!(
                     "{}",
                     json!({
-                        "puzzle": "cube2",
-                        "solver": solver.name(),
+                        "puzzle": puzzle,
+                        "solver": solver,
                         "heuristic": h_name,
-                        "scramble": format_moves(&moves),
+                        "scramble": format_moves(moves),
                         "solution": text,
                         "length": sol.moves.len(),
                         "optimal": sol.optimal,
@@ -182,7 +263,7 @@ fn solve(
                         sol.moves.len(),
                         if sol.optimal { " (optimal)" } else { "" }
                     );
-                    println!("Solver: {}", solver.name());
+                    println!("Solver: {solver}");
                     println!(
                         "Expanded: {}  Generated: {}  Peak stored: {}  Iterations: {}",
                         sol.stats.expanded,
@@ -265,6 +346,7 @@ fn main() -> ExitCode {
             scramble,
             solver,
             heuristic,
+            target_length,
             weight,
             max_depth,
             max_expanded,
@@ -288,7 +370,16 @@ fn main() -> ExitCode {
                 timeout,
             };
             solve(
-                puzzle, &scramble, solver, &heuristic, weight, limits, format,
+                puzzle,
+                Request {
+                    scramble: &scramble,
+                    solver,
+                    heuristic: heuristic.as_deref(),
+                    weight,
+                    target_length,
+                    limits,
+                    format,
+                },
             )
         }
         Command::Scramble { length, seed } => {

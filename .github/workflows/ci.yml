@@ -39,6 +39,10 @@ jobs:
         run: python3 conformance/harness.py --impl gpss --no-build --solver astar --heuristic dual
       - name: BFS, depth <= 8
         run: python3 conformance/harness.py --impl gpss --no-build --solver bfs --max-depth 8
+      - name: 3x3x3 two-phase, full corpus
+        run: python3 conformance/harness.py --impl gpss --no-build --solver twophase --corpus conformance/corpus/cube3.jsonl
+      - name: 3x3x3 IDA* (no heuristic), depth <= 5
+        run: python3 conformance/harness.py --impl gpss --no-build --solver idastar --corpus conformance/corpus/cube3.jsonl --max-depth 5
 
   legacy:
     name: Legacy C++ baseline

@@ -6,6 +6,7 @@
   - [search.md](theory/search.md) - BFS, A*, weighted A*, IDA*, statistics
   - [pattern-databases.md](theory/pattern-databases.md)
   - [cube2.md](theory/cube2.md) - representation, fixed frame, coordinates, distribution
+  - [cube3.md](theory/cube3.md) - 3x3x3 cubie model, invariants, coordinates
   - [korf-optimal-3x3.md](theory/korf-optimal-3x3.md) - planned
   - [kociemba-two-phase.md](theory/kociemba-two-phase.md) - planned
   - [deepcubea.md](theory/deepcubea.md) - planned learned solver
