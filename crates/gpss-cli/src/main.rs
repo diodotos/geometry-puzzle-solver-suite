@@ -631,6 +631,9 @@ fn evaluate(
 /// `1..=optimal_depth`, `per_depth` scrambles labelled with their exact distance by Korf
 /// IDA* (heuristic error + solution quality), plus `random` states 100 random moves deep
 /// whose distance is unknown (solve rate, length, effort only).
+/// Default per-solve node limit for `evaluate --puzzle cube3` (a few GB of BWAS state).
+const CUBE3_EVAL_MAX_EXPANDED: u64 = 1_000_000;
+
 #[allow(clippy::too_many_arguments)]
 fn evaluate_cube3(
     heuristic: &str,
@@ -683,6 +686,8 @@ fn evaluate_cube3(
     let heuristic_report = (!labeled.is_empty())
         .then(|| eval::heuristic_error::<Cube3, _>(h.as_ref(), &labeled, 8192));
 
+    // BWAS keeps every visited state, so deep 3x3x3 searches need a bound by default.
+    let max_expanded = max_expanded.or(Some(CUBE3_EVAL_MAX_EXPANDED));
     let limits = SearchLimits {
         max_expanded,
         ..SearchLimits::default()

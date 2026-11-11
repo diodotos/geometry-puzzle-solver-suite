@@ -192,7 +192,8 @@ The 3x3x3 (4.3e19 states) cannot be enumerated, so `gpss evaluate --puzzle cube3
 - `--random` states 100 random moves deep (distance unknown, typically 17-19): only %
   solved, mean/max length and effort are reported.
 
-Without `--weights` it evaluates `--heuristic korf` (or `zero`).
+Without `--weights` it evaluates `--heuristic korf` (or `zero`). `--max-expanded` defaults
+to 1,000,000 per solve here, since BWAS keeps every visited state.
 
 ## Cloud training (`gpss_train launch`)
 
