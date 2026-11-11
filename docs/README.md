@@ -9,7 +9,8 @@
   - [cube3.md](theory/cube3.md) - 3x3x3 cubie model, invariants, coordinates
   - [cuboid.md](theory/cuboid.md) - generic AxBxC sticker model, notation, metric
   - [korf-optimal-3x3.md](theory/korf-optimal-3x3.md) - Korf's pattern databases, build, cache, performance
-  - [kociemba-two-phase.md](theory/kociemba-two-phase.md) - planned
+  - [kociemba-two-phase.md](theory/kociemba-two-phase.md) - two-phase solver, symmetry-reduced tables, timings
+  - [cube3-symmetry.md](theory/cube3-symmetry.md) - the 48 cube symmetries, conjugation, inverse
   - [deepcubea.md](theory/deepcubea.md) - learned cost-to-go + batch weighted A*
 - [training.md](training.md) - train / export / evaluate learned heuristics; cloud launchers
 - [testing.md](testing.md) - test layers, corpus, CI

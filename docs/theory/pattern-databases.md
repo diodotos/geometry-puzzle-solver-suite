@@ -38,8 +38,14 @@ complete distance table: with it IDA* expands exactly `d` nodes and never backtr
 The diameters 6 and 7 of the sub-problems were computed both by the Rust PDB builder and
 by an independent Python BFS.
 
-## 3x3x3 (planned)
+## 3x3x3
 
 Korf [Korf97] used three databases: the 8 corners (88 million entries, 4 bits each) and
-two sets of 6 edges, combined by `max`, with IDA*. The generic `PatternDatabase` will need
-4-bit packing, symmetry reduction and on-disk caching for those sizes; see the roadmap.
+two sets of 6 edges, combined by `max`, with IDA*. `cube3::korf` implements them with its
+own 4-bit packing and on-disk cache, and reads the edge tables on the inverse and two
+conjugates of the position as well ([Fel05]; see [`korf-optimal-3x3.md`](korf-optimal-3x3.md)).
+
+The two-phase solver uses *symmetry-reduced* tables (one row per class of a coordinate
+under the 16 symmetries fixing the U-D axis) storing distances modulo 3, after Kociemba
+[KocImp]; see [`kociemba-two-phase.md`](kociemba-two-phase.md). The generic
+`PatternDatabase` has neither feature yet.

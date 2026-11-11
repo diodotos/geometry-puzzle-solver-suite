@@ -21,8 +21,11 @@
 //!
 //! See `docs/theory/kociemba-two-phase.md`.
 
+mod cache;
 pub mod coord;
 pub mod korf;
+pub mod sym;
+pub mod symcoord;
 #[cfg(test)]
 mod tests;
 pub mod twophase;
@@ -71,6 +74,24 @@ impl Cube3State {
     /// `self` followed by each move of `moves` in turn.
     pub fn then_all(&self, moves: &[FaceTurn]) -> Cube3State {
         moves.iter().fold(*self, |s, &m| s.then(transform(m)))
+    }
+
+    /// The inverse position: `s.then(&s.inverse())` is solved. An optimal solution of
+    /// the inverse, reversed and inverted move by move, solves `s`, so both are the same
+    /// distance from solved.
+    pub fn inverse(&self) -> Cube3State {
+        let mut out = Cube3State::SOLVED;
+        for i in 0..8 {
+            let c = self.cp[i] as usize;
+            out.cp[c] = i as u8;
+            out.co[c] = (3 - self.co[i]) % 3;
+        }
+        for i in 0..12 {
+            let e = self.ep[i] as usize;
+            out.ep[e] = i as u8;
+            out.eo[e] = self.eo[i];
+        }
+        out
     }
 
     /// Whether the state satisfies the cube invariants (twist, flip and parity), i.e. is

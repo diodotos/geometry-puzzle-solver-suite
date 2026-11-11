@@ -1,7 +1,7 @@
 # The 3x3x3 Rubik's Cube
 
 Implementation: `crates/gpss-puzzles/src/cube3/`. Solver theory: [kociemba-two-phase.md](kociemba-two-phase.md),
-[korf-optimal-3x3.md](korf-optimal-3x3.md).
+[korf-optimal-3x3.md](korf-optimal-3x3.md). Symmetries: [cube3-symmetry.md](cube3-symmetry.md).
 
 ## State space
 
