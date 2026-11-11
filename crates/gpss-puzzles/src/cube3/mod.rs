@@ -249,11 +249,12 @@ impl gpss_core::encode::Encodable for Cube3 {
 
     #[inline]
     fn encode(&self, state: &Cube3State, out: &mut [u8]) {
-        for i in 0..8 {
-            out[i] = 3 * state.cp[i] + state.co[i];
+        let (corners, edges) = out.split_at_mut(8);
+        for (o, (&p, &t)) in corners.iter_mut().zip(state.cp.iter().zip(&state.co)) {
+            *o = 3 * p + t;
         }
-        for i in 0..12 {
-            out[8 + i] = 2 * state.ep[i] + state.eo[i];
+        for (o, (&p, &f)) in edges.iter_mut().zip(state.ep.iter().zip(&state.eo)) {
+            *o = 2 * p + f;
         }
     }
 }
