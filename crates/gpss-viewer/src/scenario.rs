@@ -181,7 +181,15 @@ pub fn parse(text: &str) -> Result<Vec<Command>, ParseError> {
         let right = |k: usize| args.get(k) == Some(&"right");
         let cmd = match word {
             "cuboid" => Command::Cuboid(rest.to_string()),
-            "size" => Command::Size(num(0)? as u32, num(1)? as u32),
+            "size" => {
+                let (w, h) = (num(0)?, num(1)?);
+                // yuv420p video needs even dimensions.
+                let even = |v: f32| v >= 2.0 && v.fract() == 0.0 && v % 2.0 == 0.0;
+                if !even(w) || !even(h) {
+                    return Err(err("size must be positive even integers"));
+                }
+                Command::Size(w as u32, h as u32)
+            }
             "case" => Command::Case(rest.to_string()),
             "note" => Command::Note(rest.to_string()),
             "wait" => Command::Wait(num(0)?),
@@ -266,5 +274,8 @@ mod tests {
         assert_eq!(cmds[3], Command::Expect(Expect::State("R".into())));
         assert!(parse("bogus").is_err());
         assert_eq!(parse_point("FF@2,0,2"), None);
+        assert!(parse("size 640 480").is_ok());
+        assert!(parse("size 641 480").is_err());
+        assert!(parse("size 640 0").is_err());
     }
 }
