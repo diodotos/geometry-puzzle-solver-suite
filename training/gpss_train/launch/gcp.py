@@ -4,7 +4,9 @@ Prerequisites (yours, not ours): ``gcloud auth login``, a project
 (``--extra project=<id>`` or the gcloud default), a GCS bucket, and a service account the
 VM runs as that can write to it (``--extra service_account=<email>``). The VM is created
 with ``--max-run-duration`` and ``--instance-termination-action=DELETE``, a provider-side
-limit that holds even if the bootstrap script hangs.
+limit that holds even if the bootstrap script hangs. A guest ``shutdown`` only *stops* a GCE
+VM (its disk keeps billing), so on exit the bootstrap deletes its own instance first; the
+VM's service account therefore needs Compute Instance Admin.
 """
 
 from __future__ import annotations
@@ -17,6 +19,9 @@ from .bootstrap import bootstrap_script
 from ..davi import DaviConfig
 
 
+GPU_IMAGE_FAMILY = "common-cu129-ubuntu-2204-nvidia-580"
+
+
 class GcpLauncher(Launcher):
     name = "gcp"
     default_machine = "c3-standard-8"
@@ -27,6 +32,14 @@ class GcpLauncher(Launcher):
         "g2-standard-4": MachineType("g2-standard-4", 4, 0.707, speed=14.0, gpu="1x L4"),
     }
 
+    @staticmethod
+    def image_args(machine: MachineType) -> list:
+        """GPU machines boot a Deep Learning VM image that installs the NVIDIA driver."""
+        if machine.gpu:
+            return ["--image-family", GPU_IMAGE_FAMILY, "--image-project", "deeplearning-platform-release",
+                    "--metadata", "install-nvidia-driver=True"]
+        return ["--image-family", "ubuntu-2204-lts", "--image-project", "ubuntu-os-cloud"]
+
     def plan(self, cfg: DaviConfig, res: Resources) -> LaunchPlan:
         if not res.bucket:
             raise ValueError("gcp: --bucket gs://<bucket>/<prefix> is required for artefacts")
@@ -34,18 +47,20 @@ class GcpLauncher(Launcher):
         machine = self.machine(res)
         artefacts = f"{res.bucket.rstrip('/')}/{cfg.puzzle}-davi"
         script = bootstrap_script(cfg, repo=res.repo, ref=res.ref, max_hours=res.max_hours,
-                                  upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts)
+                                  upload="gcloud storage cp --recursive {src} {dst}", artefacts=artefacts,
+                                  exists="gcloud storage ls {path}", sync="gcloud storage rsync --recursive {src} {dst}",
+                                  teardown=f'gcloud compute instances delete "$(hostname)" --zone {zone} --quiet')
         cmd = [
             "gcloud", "compute", "instances", "create", "gpss-davi",
             "--zone", zone,
             "--machine-type", machine.name,
-            "--image-family", "ubuntu-2204-lts", "--image-project", "ubuntu-os-cloud",
-            "--boot-disk-size", "40GB",
+            *self.image_args(machine),
+            "--boot-disk-size", "100GB" if machine.gpu else "40GB",  # DLVM GPU images are 50 GB
             "--max-run-duration", f"{math.ceil(res.max_hours * 3600)}s",
             "--instance-termination-action", "DELETE",
             "--labels", "gpss=train",
             "--metadata-from-file", "startup-script=gpss-bootstrap.sh",
-            "--scopes", "storage-rw",
+            "--scopes", "storage-rw,compute-rw",
         ]
         if machine.gpu:
             cmd += ["--maintenance-policy", "TERMINATE"]

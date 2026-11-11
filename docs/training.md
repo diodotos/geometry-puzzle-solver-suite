@@ -195,19 +195,46 @@ All backends share one flow (ADR 0009): a cost/time **estimate**, the exact **pl
 (commands and VM bootstrap script), and a launch only with `--execute` plus an interactive
 `yes` (or `--yes`). Cloud launches also need `--budget-usd` and are refused when the
 estimate exceeds it. Each VM shuts itself down after `--max-hours` and is created so that
-shutdown deletes it; artefacts (checkpoint, log, ONNX + manifest) go to `--bucket`.
+shutdown deletes it (on GCP a guest shutdown only *stops* the VM and its disk keeps billing,
+so the bootstrap deletes its own instance on exit, and `--max-run-duration` with
+`--instance-termination-action=DELETE` is the provider-side backstop); artefacts (checkpoint, log, ONNX + manifest) go to `--bucket`.
 Training itself is stopped (`timeout --signal=INT`) 5-15 minutes before that deadline, so
 the last checkpoint is still exported and uploaded and the run can be resumed (a
 `TIME_LIMIT` file marks this). If training crashes instead, the last checkpoint is still
 uploaded, next to a `TRAINING_FAILED` file, and the bootstrap exits with the error. The trainer
 uses CUDA automatically when PyTorch sees a GPU.
 
+**Spot / preemptible capacity (`--spot`).** The provider may reclaim (and, with these
+settings, delete) the VM at any time, so the bootstrap does not rely on the end-of-run upload:
+
+1. before training it restores `<bucket>/<puzzle>-davi/run/` into the run directory (if
+   present; a failed restore of an existing checkpoint aborts instead of starting over), and
+   training always starts with `--resume`;
+2. during training a background loop mirrors the run directory (atomic `checkpoint.pt`,
+   `log.jsonl`, `config.json`) back to that prefix every 10 minutes
+   (`gcloud storage rsync` / `aws s3 sync`), plus a final mirror once training stops.
+
+A reclaim therefore loses at most ~10 minutes of training. To continue, re-run the **same**
+launch command (same `--bucket` and `--puzzle`); the new VM picks the run up where the
+mirror left it. Nothing relaunches automatically; budget each relaunch with `--budget-usd`.
+
+**GPU images (GCP).** GPU machine types (e.g. `g2-standard-4`, 1x L4) boot the Deep Learning
+VM image family `common-cu129-ubuntu-2204-nvidia-580`, which ships the NVIDIA driver; it
+needs a boot disk of at least 50 GB (the launcher uses 100 GB). CPU machine types keep plain
+Ubuntu 22.04. The pip `torch` wheel bundles CUDA, so no toolkit install is needed.
+
+**3x3x3.** `--puzzle cube3` uses the `cubie` v1 encoding (8 corners as `3*piece+twist`,
+12 edges as `2*piece+flip`; 20 positions x 24 classes) and a preset matching DeepCubeA's
+3x3x3 setup: scrambles 1-30, a (5000, 1000) network with four residual blocks, batch 10,000,
+1M states per value-iteration update. It is far too slow for a CPU; see the cloud section.
+
 Prerequisites you set up yourself (nothing here touches credentials):
 
 - **AWS:** `aws` CLI configured (`aws configure` or SSO); an S3 bucket; an instance profile
   allowed to write to it (`--extra instance_profile=NAME`); optionally `--extra key_name=`.
 - **GCP:** `gcloud auth login`; a project (`--extra project=ID` or gcloud default); a GCS
-  bucket; optionally a VM service account (`--extra service_account=EMAIL`).
+  bucket; optionally a VM service account (`--extra service_account=EMAIL`). The VM's
+  account needs Storage write and Compute Instance Admin (the VM deletes itself on exit).
 
 Machine tables (prices, relative speeds) are in `launch/aws.py` and `launch/gcp.py`. The
 reference speed (1.0) is the 8-vCPU VM that trained the shipped weights; other speeds,

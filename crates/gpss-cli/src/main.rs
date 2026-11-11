@@ -610,6 +610,7 @@ fn learned_cube2_only(format: Format) -> ExitCode {
 }
 
 fn scramble_data(
+    puzzle: PuzzleKind,
     count: usize,
     min_scramble: u8,
     max_scramble: u8,
@@ -633,7 +634,18 @@ fn scramble_data(
         min_scramble,
         max_scramble,
     };
-    let batch = data::generate(&Cube2::new(), &cfg, &mut rng);
+    let batch = match puzzle {
+        PuzzleKind::Cube2 => data::generate(&Cube2::new(), &cfg, &mut rng),
+        PuzzleKind::Cube3 => data::generate(&Cube3::new(), &cfg, &mut rng),
+        PuzzleKind::Cuboid(_) => {
+            return fail(
+                Format::Text,
+                2,
+                "invalid_argument",
+                "scramble-data supports --puzzle cube2 or cube3 (cuboids have no encoding yet)",
+            )
+        }
+    };
     let result = if out == "-" {
         batch.write(std::io::BufWriter::new(std::io::stdout().lock()))
     } else {
@@ -786,17 +798,15 @@ fn main() -> ExitCode {
             seed,
             max_expanded,
         ),
-        Command::ScrambleData { puzzle, .. } if puzzle != PuzzleKind::Cube2 => {
-            learned_cube2_only(Format::Text)
-        }
         Command::ScrambleData {
+            puzzle,
             count,
             min_scramble,
             max_scramble,
             seed,
             out,
             ..
-        } => scramble_data(count, min_scramble, max_scramble, seed, &out),
+        } => scramble_data(puzzle, count, min_scramble, max_scramble, seed, &out),
         Command::Train { args } => train(&args),
         Command::Scramble { length, seed } => {
             let mut rng = match seed {

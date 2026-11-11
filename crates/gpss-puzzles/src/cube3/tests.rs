@@ -529,3 +529,39 @@ fn estimate_within_is_forwarded_through_box_and_ref() {
     assert_eq!(via(&boxed, 1), 1);
     assert_eq!(via(boxed, 2), 2);
 }
+
+#[test]
+fn encoding_is_injective_and_in_range() {
+    use gpss_core::encode::Encodable;
+    let cube = Cube3::new();
+    let spec = cube.encoding();
+    assert_eq!(
+        (spec.puzzle.as_str(), spec.len, spec.classes),
+        ("cube3", 20, 24)
+    );
+    let mut seen = std::collections::HashMap::new();
+    let mut frontier = vec![cube.solved()];
+    for _ in 0..3 {
+        let mut next = Vec::new();
+        for s in &frontier {
+            for &m in cube.moves() {
+                next.push(cube.apply(s, m));
+            }
+        }
+        frontier = next;
+        for s in &frontier {
+            let mut code = [0u8; 20];
+            cube.encode(s, &mut code);
+            assert!(code.iter().all(|&c| u16::from(c) < spec.classes));
+            assert_eq!(
+                *seen.entry(code).or_insert(*s),
+                *s,
+                "two states share an encoding"
+            );
+        }
+    }
+    let mut solved = [0u8; 20];
+    cube.encode(&cube.solved(), &mut solved);
+    assert_eq!(&solved[..8], &[0, 3, 6, 9, 12, 15, 18, 21]);
+    assert_eq!(&solved[8..], &[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]);
+}

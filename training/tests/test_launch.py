@@ -112,6 +112,30 @@ def test_bootstrap_quotes_bucket_and_stops_training_before_kill_switch():
     assert script.rstrip().endswith('if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi')
 
 
+def test_bootstrap_mirrors_and_restores_run_dir_for_spot():
+    plan = get_launcher("gcp", Recorder()).plan(CFG, res("gcp", max_hours=2, machine="g2-standard-4", spot=True))
+    cmd, script = plan.commands[0], plan.files["gpss-bootstrap.sh"]
+    remote = "gs://b/p/cube2-davi/run"
+    restore = f"gcloud storage rsync --recursive {remote} /opt/gpss/run"
+    push = f"gcloud storage rsync --recursive /opt/gpss/run {remote}"
+    # Restore before training, then mirror periodically in the background during it.
+    found = "gcloud storage ls gs://b/p/cube2-davi/run/checkpoint.pt"
+    assert f"if {found} >/dev/null 2>&1; then {restore}; else" in script
+    assert script.index(restore) < script.index("sleep 600; [ -e $stop ] || " + push) < script.index("timeout")
+    # After training: stop the mirror and push the final checkpoint before export/upload.
+    final = script.index('wait "$mirror_pid"')
+    assert script.index("timeout") < final < script.index(push, final) < script.index("gpss_train export")
+    assert "--resume" in script and "--provisioning-model" in cmd
+    # GPU machines boot the Deep Learning VM image (NVIDIA driver) on a disk that fits it.
+    assert cmd[cmd.index("--image-project") + 1] == "deeplearning-platform-release"
+    assert cmd[cmd.index("--boot-disk-size") + 1] == "100GB"
+
+
+def test_cpu_gcp_plan_uses_plain_ubuntu():
+    cmd = get_launcher("gcp", Recorder()).plan(CFG, res("gcp", machine="c3-standard-8")).commands[0]
+    assert cmd[cmd.index("--image-project") + 1] == "ubuntu-os-cloud"
+
+
 def test_launch_refuses_to_overwrite_existing_script(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "gpss-bootstrap.sh").write_text("mine")
@@ -120,3 +144,15 @@ def test_launch_refuses_to_overwrite_existing_script(tmp_path, monkeypatch):
         confirm_and_launch(get_launcher("aws", rec), CFG, res("aws", budget_usd=100), execute=True,
                            assume_yes=True, show=lambda s: None)
     assert rec.calls == [] and (tmp_path / "gpss-bootstrap.sh").read_text() == "mine"
+
+
+def test_gcp_vm_deletes_itself_on_exit():
+    from gpss_train.launch.base import Resources
+    from gpss_train.launch.gcp import GcpLauncher
+
+    plan = GcpLauncher().plan(CFG, Resources("gcp", machine="g2-standard-4", bucket="gs://b/p",
+                                             region="us-central1-a", budget_usd=5))
+    script = plan.files["gpss-bootstrap.sh"]
+    assert """trap 'gcloud compute instances delete "$(hostname)" --zone us-central1-a --quiet; shutdown -h now' EXIT""" in script
+    cmd = plan.commands[0]
+    assert cmd[cmd.index("--scopes") + 1] == "storage-rw,compute-rw"
