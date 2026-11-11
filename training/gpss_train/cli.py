@@ -3,6 +3,7 @@
 Commands:
     train   run DAVI locally (resumable)
     export  checkpoint -> ONNX + weights manifest
+    report  render `gpss evaluate` JSON reports as Markdown
     launch  run training on local / aws / gcp with a cost estimate and confirmation
 """
 
@@ -56,6 +57,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_export.add_argument("--evaluation", type=Path, default=None,
                           help="JSON evaluation summary to embed in the manifest")
 
+    p_report = sub.add_parser("report", help="render `gpss evaluate` JSON as Markdown tables")
+    p_report.add_argument("what", choices=["heuristic", "depth", "uniform-depth", "settings", "summary"])
+    p_report.add_argument("reports", type=Path, nargs="+")
+
     from .launch.cli import add_launch_parser
     add_launch_parser(sub)
 
@@ -69,6 +74,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         from .export import export
         evaluation = json.loads(args.evaluation.read_text()) if args.evaluation else None
         print(export(args.checkpoint, args.out, args.name, evaluation))
+        return 0
+    if args.command == "report":
+        from .report import main as report_main
+        print(report_main(args.reports, args.what))
         return 0
     if args.command == "launch":
         from .launch.cli import run_launch
