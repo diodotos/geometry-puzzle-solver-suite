@@ -49,15 +49,15 @@ impl PatternDatabase {
         queue.push_back(start);
         while let Some(state) = queue.pop_front() {
             let d = table[coord.index(&state)];
-            assert!(
-                d < UNSEEN - 1,
-                "pattern database {} exceeds the u8 distance range",
-                coord.name()
-            );
             for &mv in puzzle.moves() {
                 let child = puzzle.apply(&state, mv);
                 let idx = coord.index(&child);
                 if table[idx] == UNSEEN {
+                    assert!(
+                        d < UNSEEN - 1,
+                        "pattern database {} exceeds the u8 distance range",
+                        coord.name()
+                    );
                     table[idx] = d + 1;
                     queue.push_back(child);
                 }
