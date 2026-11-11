@@ -56,7 +56,7 @@ def plot(logs: List[str], profiles: List[str], out: Path, title: str = "") -> Pa
         ax[2].plot(rounds, [r["target_max"] for r in recs], color=c, label=name)
         ax[3].plot([r["wall_s"] / 3600 for r in recs], [r["syncs"] for r in recs], color=c, label=name)
         offset = max(offset, rounds[-1]) if rounds else offset
-    ax[0].set_ylim(0, 0.3)
+    ax[0].set_yscale("log")  # early-training losses are orders of magnitude above the plateau
     ax[0].set_title("Loss (MSE vs Bellman target)")
     ax[1].set_title("Mean Bellman target")
     ax[2].set_title("Max Bellman target per round")
