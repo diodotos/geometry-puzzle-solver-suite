@@ -1,0 +1,18 @@
+[package]
+name = "gpss-viz"
+description = "Renderer-independent view model for gpss puzzles: geometry, turn animation, picking, drag-to-turn, playback and solver hand-off."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+gpss-core.workspace = true
+gpss-puzzles.workspace = true
+glam = "0.30"
+rand.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

@@ -50,13 +50,15 @@ pub enum Axis {
 }
 
 impl Axis {
-    const ALL: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
+    /// All three axes, in index order.
+    pub const ALL: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
 
     fn positive_face(self) -> char {
         ['R', 'U', 'F'][self as usize]
     }
 
-    fn unit(self) -> [i32; 3] {
+    /// The unit vector of the positive direction.
+    pub fn unit(self) -> [i32; 3] {
         let mut v = [0; 3];
         v[self as usize] = 1;
         v
@@ -158,10 +160,18 @@ pub enum ParseLayerTurnError {
     QuarterNotAllowed(String),
 }
 
-#[derive(Clone, Copy)]
-struct Sticker {
-    pos: [i32; 3],
-    normal: [i32; 3],
+/// Where a sticker slot sits on the solved puzzle, in doubled integer coordinates.
+///
+/// Cubie centres lie on `{-(n-1), -(n-3), ..., n-1}` along an axis with `n` layers, so a
+/// cubie spans `pos ± 1` and every coordinate stays an integer. `normal` is the unit
+/// outward normal of the face the sticker is on. A [`CuboidState`] stores the colour shown
+/// in each slot, in the same order as [`Cuboid::stickers`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Sticker {
+    /// Centre of the cubie carrying this sticker.
+    pub pos: [i32; 3],
+    /// Unit outward normal of the sticker's face.
+    pub normal: [i32; 3],
 }
 
 /// Rotate `v` by -90 degrees about the unit vector `axis` (clockwise seen from `+axis`).
@@ -187,6 +197,7 @@ pub type CuboidState = Box<[u8]>;
 pub struct Cuboid {
     dims: Dims,
     name: String,
+    stickers: Vec<Sticker>,
     solved: CuboidState,
     /// Sticker index ranges of the six faces.
     faces: Vec<std::ops::Range<usize>>,
@@ -302,6 +313,7 @@ impl Cuboid {
         Cuboid {
             dims,
             name: dims.to_string(),
+            stickers,
             solved: solved.into_boxed_slice(),
             faces,
             moves,
@@ -320,6 +332,25 @@ impl Cuboid {
     /// Number of stickers in a state.
     pub fn sticker_count(&self) -> usize {
         self.solved.len()
+    }
+
+    /// Geometry of every sticker slot, indexed like a [`CuboidState`].
+    pub fn stickers(&self) -> &[Sticker] {
+        &self.stickers
+    }
+
+    /// The doubled coordinate along `axis` of the cubies that `layer` contains.
+    pub fn layer_level(&self, axis: Axis, layer: u8) -> i32 {
+        self.dims.layers(axis) as i32 - 1 - 2 * layer as i32
+    }
+
+    /// The source permutation of a legal move: after `mv`, slot `i` shows the colour that
+    /// slot `perm[i]` showed before.
+    ///
+    /// # Panics
+    /// If `mv` is not legal on this cuboid.
+    pub fn move_permutation(&self, mv: LayerTurn) -> &[u16] {
+        self.perm(mv)
     }
 
     fn perm(&self, mv: LayerTurn) -> &[u16] {
