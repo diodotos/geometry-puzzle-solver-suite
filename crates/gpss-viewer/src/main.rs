@@ -39,6 +39,11 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     match cli.command {
         Some(Cmd::Record { scripts, out, fps }) => {
+            let mut stems = std::collections::HashSet::new();
+            if let Some(dup) = scripts.iter().find(|s| !stems.insert(s.file_stem())) {
+                eprintln!("{}: another script has the same name", dup.display());
+                return ExitCode::from(2);
+            }
             let (device, queue, adapter) = match render::headless_device() {
                 Ok(d) => d,
                 Err(e) => {
