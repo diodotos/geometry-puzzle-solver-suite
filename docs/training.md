@@ -202,6 +202,29 @@ the last checkpoint is still exported and uploaded and the run can be resumed (a
 uploaded, next to a `TRAINING_FAILED` file, and the bootstrap exits with the error. The trainer
 uses CUDA automatically when PyTorch sees a GPU.
 
+**Spot / preemptible capacity (`--spot`).** The provider may reclaim (and, with these
+settings, delete) the VM at any time, so the bootstrap does not rely on the end-of-run upload:
+
+1. before training it restores `<bucket>/<puzzle>-davi/run/` into the run directory (if
+   present), and training always starts with `--resume`;
+2. during training a background loop mirrors the run directory (atomic `checkpoint.pt`,
+   `log.jsonl`, `config.json`) back to that prefix every 10 minutes
+   (`gcloud storage rsync` / `aws s3 sync`).
+
+A reclaim therefore loses at most ~10 minutes of training. To continue, re-run the **same**
+launch command (same `--bucket` and `--puzzle`); the new VM picks the run up where the
+mirror left it. Nothing relaunches automatically; budget each relaunch with `--budget-usd`.
+
+**GPU images (GCP).** GPU machine types (e.g. `g2-standard-4`, 1x L4) boot the Deep Learning
+VM image family `common-cu129-ubuntu-2204-nvidia-580`, which ships the NVIDIA driver; it
+needs a boot disk of at least 50 GB (the launcher uses 100 GB). CPU machine types keep plain
+Ubuntu 22.04. The pip `torch` wheel bundles CUDA, so no toolkit install is needed.
+
+**3x3x3.** `--puzzle cube3` uses the `cubie` v1 encoding (8 corners as `3*piece+twist`,
+12 edges as `2*piece+flip`; 20 positions x 24 classes) and a preset matching DeepCubeA's
+3x3x3 setup: scrambles 1-30, a (5000, 1000) network with four residual blocks, batch 10,000,
+1M states per value-iteration update. It is far too slow for a CPU; see the cloud section.
+
 Prerequisites you set up yourself (nothing here touches credentials):
 
 - **AWS:** `aws` CLI configured (`aws configure` or SSO); an S3 bucket; an instance profile

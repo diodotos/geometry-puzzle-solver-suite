@@ -112,6 +112,25 @@ def test_bootstrap_quotes_bucket_and_stops_training_before_kill_switch():
     assert script.rstrip().endswith('if [ -e /opt/gpss/out/TRAINING_FAILED ]; then exit "$status"; fi')
 
 
+def test_bootstrap_mirrors_and_restores_run_dir_for_spot():
+    plan = get_launcher("gcp", Recorder()).plan(CFG, res("gcp", max_hours=2, machine="g2-standard-4", spot=True))
+    cmd, script = plan.commands[0], plan.files["gpss-bootstrap.sh"]
+    remote = "gs://b/p/cube2-davi/run"
+    restore = f"gcloud storage rsync --recursive {remote} /opt/gpss/run"
+    push = f"gcloud storage rsync --recursive /opt/gpss/run {remote}"
+    # Restore before training, then mirror periodically in the background during it.
+    assert script.index(restore) < script.index("while sleep 600; do " + push) < script.index("timeout")
+    assert "--resume" in script and "--provisioning-model" in cmd
+    # GPU machines boot the Deep Learning VM image (NVIDIA driver) on a disk that fits it.
+    assert cmd[cmd.index("--image-project") + 1] == "deeplearning-platform-release"
+    assert cmd[cmd.index("--boot-disk-size") + 1] == "100GB"
+
+
+def test_cpu_gcp_plan_uses_plain_ubuntu():
+    cmd = get_launcher("gcp", Recorder()).plan(CFG, res("gcp", machine="c3-standard-8")).commands[0]
+    assert cmd[cmd.index("--image-project") + 1] == "ubuntu-os-cloud"
+
+
 def test_launch_refuses_to_overwrite_existing_script(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "gpss-bootstrap.sh").write_text("mine")

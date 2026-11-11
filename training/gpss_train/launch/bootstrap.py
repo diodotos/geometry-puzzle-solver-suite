@@ -50,7 +50,9 @@ set -euxo pipefail
 shutdown -h +{minutes}
 trap 'shutdown -h now' EXIT
 export DEBIAN_FRONTEND=noninteractive HOME=/root
-apt-get update && apt-get install -y build-essential git python3-pip curl
+# GPU (Deep Learning VM) images already ship these; skip the slow apt round-trip there.
+missing=0; for tool in cc git pip3 curl; do command -v "$tool" >/dev/null || missing=1; done
+if [ "$missing" = 1 ]; then apt-get update && apt-get install -y build-essential git python3-pip curl; fi
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 source /root/.cargo/env
 git clone {shlex.quote(repo)} /opt/gpss/src && cd /opt/gpss/src && git checkout {shlex.quote(ref)}
