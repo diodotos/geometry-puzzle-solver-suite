@@ -255,9 +255,20 @@ impl PuzzleCheck {
         self.diffs.values().map(Vec::len).sum()
     }
 
-    /// Correct and (unless just updated) identical to the baseline.
+    /// Whether the baseline was recorded on this exact corpus (vacuously true without one;
+    /// a missing baseline is reported as a [`Diff::NoBaseline`] instead).
+    pub fn corpus_matches(&self) -> bool {
+        self.baseline_fingerprint
+            .as_ref()
+            .map_or(true, |b| *b == self.corpus_fingerprint)
+    }
+
+    /// Correct and (unless just updated) identical to the baseline, corpus included: a
+    /// corpus edit that leaves every counter unchanged (e.g. a removed reject case) still
+    /// needs a reviewed `--update`.
     pub fn ok(&self) -> bool {
-        self.failure_count() == 0 && (self.updated || self.diff_count() == 0)
+        self.failure_count() == 0
+            && (self.updated || (self.diff_count() == 0 && self.corpus_matches()))
     }
 
     /// A plain-text summary suitable for CI logs.
@@ -269,11 +280,11 @@ impl PuzzleCheck {
             self.puzzle, self.corpus_fingerprint
         );
         if let Some(b) = &self.baseline_fingerprint {
-            if *b != self.corpus_fingerprint {
+            if *b != self.corpus_fingerprint && !self.updated {
                 let _ = writeln!(
                     s,
-                    "NOTE: baseline was recorded on corpus {b}; the corpus changed, so counter \
-                     diffs are expected. Re-run with --update after reviewing."
+                    "CORPUS CHANGED: baseline was recorded on corpus {b}. Review the corpus \
+                     edit and any counter diffs, then re-run with --update."
                 );
             }
         }
