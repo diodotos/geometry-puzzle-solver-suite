@@ -130,7 +130,8 @@ impl Player {
     /// Animations still needed to reach the target (not counting the one in progress).
     pub fn pending(&self) -> usize {
         let p = self.common_prefix();
-        (self.shown.len() - p) + (self.timeline.len() - p)
+        let remaining = (self.shown.len() - p) + (self.timeline.len() - p);
+        remaining - usize::from(self.anim.is_some())
     }
 
     /// Jump to `state` with nothing queued or animating, and make it the new baseline.
@@ -340,6 +341,12 @@ mod tests {
         for _ in 0..MAX_PENDING {
             p.push(r2, Source::User).unwrap();
         }
+        assert_eq!(p.push(r2, Source::User), Err(Rejected::QueueFull));
+        // The move being animated does not use up a queue slot.
+        p.tick(0.01);
+        assert!(p.animation().is_some());
+        assert_eq!(p.pending(), MAX_PENDING - 1);
+        p.push(r2, Source::User).unwrap();
         assert_eq!(p.push(r2, Source::User), Err(Rejected::QueueFull));
     }
 
