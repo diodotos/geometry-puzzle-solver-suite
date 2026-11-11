@@ -153,18 +153,60 @@ Wall times include the ~0.8 s table build, which is why the blind search wins on
 easy 2x3x4 case.
 
 The heuristic knows nothing about edges or centres, so on 3x3x3 and larger it is weak:
-corners alone are solved within 11 moves, while 4x4x4 positions need far more. Stronger
-generic PDBs are the next step.
+corners alone are solved within 11 moves, while 4x4x4 positions need far more.
+
+## Heuristic: sticker-orbit pattern databases
+
+`OrbitHeuristic` (`--heuristic orbits`, the default for A*, IDA* and BWAS on cuboids)
+adds generic tables for every other piece type, with no per-shape code:
+
+1. **Orbits.** Layer turns permute sticker positions. A union-find over every move
+   permutation (`Cuboid::sticker_orbits`) splits positions into orbits: corners, edges or
+   midges, wings, and each kind of centre. Corner orbits are left to `CornerHeuristic`.
+2. **Abstraction.** For an orbit and a colour set, keep only *which positions show a
+   tracked colour*, as a bitmask. A move permutes stickers, so it maps bitmasks to
+   bitmasks: the abstraction is a homomorphism of the puzzle graph. The tracked sets are
+   the three opposite-face pairs (U/D, R/L, F/B), merged into one symbol, so an orbit of
+   24 positions with 8 tracked stickers has at most C(24, 8) = 735,471 states.
+3. **Goal.** The goal set is the bitmask of every whole-puzzle rotation of solved, so
+   "solved up to rotation" is respected exactly as in the corner projection.
+4. **Table.** A multi-source BFS from the goal set gives the exact abstract distance
+   (`OrbitPdb`). It is a relaxed problem, so each table is admissible and consistent, and
+   so is the max over all tables and the corner heuristic
+   (`prop_orbit_heuristic_is_consistent`,
+   `orbit_heuristic_is_admissible_on_bfs_labelled_scrambles`).
+
+Orbits over 64 positions, or abstractions over 3 M states, are skipped. Tables are built
+in parallel at start-up and kept in memory: about 0.2 s and 20 MB on 3x3x3, about 1.5 s
+and 220 MB on 4x4x4. They are not cached on disk.
+
+Effect on IDA* (same VM and settings as above; times include all table builds):
+
+| puzzle | scramble | length | corners | orbits |
+|---|---|---|---|---|
+| 3x3x2 | `U R2 F2 D' 2U L2 B2 U` | 7 | 14,219 expanded, 0.9 s | 1,372 expanded, 0.8 s |
+| 3x3x3 | `R U F D L B` | 6 | 491 expanded, 1.0 s | 6 expanded, 1.1 s |
+| 3x3x3 | `R U F D L B R2 U'` | 8 | 16,822 expanded, 0.9 s | 71 expanded, 1.1 s |
+| 3x3x3 | `R U F D L B R2 U' F2 L` | 10 | 1,822,464 expanded, 5.7 s | 5,833 expanded, 1.1 s |
+| 3x3x3 | `R U F D L B R2 U' F2 L D' B2` | 12 | not run | 1,594,377 expanded, 14.4 s |
+| 4x4x4 | `2R U 3F' R2 2U' F` | 6 | 470,733 expanded, 2.3 s | 7 expanded, 2.3 s |
+| 4x4x4 | `2R U 3F' R2 2U' F 2L'` | 7 | 4,732,552 expanded, 16.0 s | 13 expanded, 2.8 s |
+| 4x4x4 | `2R U 3F' R2 2U' F 2L' D` | 8 | not run | 234 expanded, 3.6 s |
+
+On the 2x3x4 case from the corner table above (7 moves) the orbit tables add nothing:
+expansions stay at 43,030. Shorter scrambles on big cubes are close to perfectly guided because a few moves
+disturb many orbits at once; random positions remain far beyond reach.
 
 ## Limits and next steps
 
-With the corner heuristic, IDA* handles roughly 7–9 move positions on small cuboids and
-3x3x3. Deeper positions need more information. Planned work:
+With the orbit heuristic, IDA* handles roughly 10–12 move positions on 3x3x3 and 8+ on
+4x4x4. Deeper positions need more information. Planned work:
 
 1. ~~Canonicalise states modulo whole-puzzle rotation~~: done (see "Whole-puzzle
    rotations"). It pays off for goal-rooted searches, not forward solves.
-2. More generic pattern databases over sticker subsets: edges, centres and wings for
-   larger cubes, combined with the corner projection by `MaxHeuristic` or additively.
+2. ~~Generic pattern databases over sticker subsets~~: done (see "Sticker-orbit pattern
+   databases"). Finer colour sets (single colours as distinct symbols), disk caching and
+   additive combinations are the follow-ups.
 3. Wide turns and other move metrics (outer block turn metric).
 4. Generalise from axis-aligned layers to arbitrary cutting planes. This is the
    "arbitrary geometry" step.
