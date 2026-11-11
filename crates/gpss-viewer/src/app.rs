@@ -100,6 +100,8 @@ impl ViewerApp {
                     Ok(d) => {
                         let size = self.ctl.viewport();
                         self.ctl = Controller::new(Cuboid::new(d), size);
+                        // Job ids restart with the controller; drop answers for the old puzzle.
+                        (self.solved_tx, self.solved_rx) = mpsc::channel();
                         self.log.push(format!("new {d}"));
                     }
                     Err(e) => self.log.push(format!("rejected: {e}")),
