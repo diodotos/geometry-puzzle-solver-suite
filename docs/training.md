@@ -282,6 +282,27 @@ With the `cube3` preset the loss stays around 0.05-0.08, so almost every sync is
 forced one after 10 updates and the mean target depth grows by ~0.3-0.8 per sync (8.2 at
 update 20). Value propagation to depth ~20 therefore needs a few hundred updates.
 
+### Pilot outcome (145 updates, ~4.1 L4-hours)
+
+The pilot stopped at its time limit after 145 updates and 23 target syncs (one spot reclaim
+in between). The mean Bellman target rose quickly to ~9.5 by update 90, then plateaued at
+9.4-9.6 while the loss drifted between 0.13 and 0.16, so every later sync was forced.
+
+`gpss evaluate --puzzle cube3 --per-depth 5 --optimal-depth 10 --random 10
+--max-expanded 200000 --lambda 0.6 --batch-size 1000`, on the dev VM: 8 vCPUs (generic "Intel Xeon Processor" cloud VM, no GPU), ONNX Runtime 1.23.2 using all
+threads:
+
+| checkpoint | MAE vs Korf (depth 1-10) | overestimates | labelled solves (optimal) | 100-move scrambles solved | mean length |
+|---|---|---|---|---|---|
+| ~update 45 | 0.66 | 26% | 50/50 (100%) | 2/10 | 18.5 |
+| update 145 (final) | 0.51 | 36% | 50/50 (100%) | 4/10 | 18.5 |
+
+The network already guides BWAS to optimal solutions on short scrambles, and the solutions it
+finds for random states are near-optimal in length (typical optimal distance 17-18). It is
+still far from the paper's 100% solve rate: random states need search budgets in the
+millions of nodes (CPU inference on that VM managed ~1,100-1,200 expansions/s), and the target plateau
+suggests the network needs many more updates, a sync rule tuned for this preset, or both.
+
 ## Deviations from the paper
 
 - Smaller network for the 2x2x2 (630k parameters instead of ~14.7M); same shape.
