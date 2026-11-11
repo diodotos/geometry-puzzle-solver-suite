@@ -658,7 +658,10 @@ fn play(gpu: Option<Gpu<'_>>, script: &Path, opts: &Options) -> Result<Report, S
         .args(["-y", "-loglevel", "error", "-i"])
         .arg(&raw)
         .arg("-vf")
-        .arg(format!("ass={}", filter_arg(&ass_path.to_string_lossy())))
+        .arg(format!(
+            "ass=filename={}",
+            filter_arg(&ass_path.to_string_lossy())
+        ))
         .args([
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
         ])
