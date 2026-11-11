@@ -52,7 +52,7 @@ class GcpLauncher(Launcher):
             "--zone", zone,
             "--machine-type", machine.name,
             *self.image_args(machine),
-            "--boot-disk-size", "40GB",
+            "--boot-disk-size", "100GB" if machine.gpu else "40GB",  # DLVM GPU images are 50 GB
             "--max-run-duration", f"{math.ceil(res.max_hours * 3600)}s",
             "--instance-termination-action", "DELETE",
             "--labels", "gpss=train",
