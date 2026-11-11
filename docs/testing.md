@@ -29,7 +29,7 @@ configuration you touch.
 | tag | meaning |
 |-----|---------|
 | `depth`, `dN` | state at exact optimal distance N (0-11) |
-| `short` / `mid` / `top` | depths 1-4 / 5-8 / 9-11 (top-of-range includes antipodes) |
+| `short` / `mid` / `top` | depths 1-5 / 6-9 / 10-11 (top-of-range includes antipodes) |
 | `random` | random scrambles of random length |
 | `edge` | identity sequences, whitespace, 200-move scramble, all 18 moves |
 | `invalid` | malformed notation that must be rejected with a non-zero, non-crash exit |
