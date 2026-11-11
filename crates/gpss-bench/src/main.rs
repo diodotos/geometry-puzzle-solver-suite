@@ -195,6 +195,15 @@ fn main() -> ExitCode {
                     return ExitCode::from(2);
                 }
             };
+            if report.failure_count() > 0 {
+                // Don't overwrite a committed report with numbers from an incorrect build.
+                eprintln!(
+                    "{} correctness failures; no report written (run `gpss-bench check` for \
+                     details)",
+                    report.failure_count()
+                );
+                return ExitCode::from(1);
+            }
             let command = format!(
                 "cargo run --release -p gpss-bench -- {}",
                 std::env::args()
@@ -218,10 +227,6 @@ fn main() -> ExitCode {
                     return code;
                 }
                 eprintln!("wrote {}", path.display());
-            }
-            if report.failure_count() > 0 {
-                eprintln!("{} correctness failures", report.failure_count());
-                return ExitCode::from(1);
             }
             ExitCode::SUCCESS
         }
