@@ -46,7 +46,44 @@ equivalent, since `L ≡ R` + rotation. But on a 3x3x3, dropping `D` turns a 1-m
 into `U' 2U'` (2 moves), so fixing a corner would change distances. Keeping all layers
 and testing "every face is uniform" keeps distances exact. The state space is then
 larger by the order of the cuboid's rotation group (24 for cubes, 8 or 4 for cuboids).
-Canonicalising states modulo rotation is a planned optimisation.
+The next section covers how rotations are factored out where that pays off.
+
+## Whole-puzzle rotations (`cuboid/symmetry.rs`)
+
+`Cuboid::new` enumerates every proper rotation (a signed permutation matrix with
+determinant +1) that maps each axis onto an axis with the same layer count. That gives 24
+for a cube, 8 for a cuboid with two equal sides (3x3x2, 2x2x3), and 4 when all three
+sides differ (2x3x4). A rotation `g` acts on a state by **conjugation**: stickers move
+with `g`, and colours are renamed by `g`'s face map, so the solved state is fixed
+(`Cuboid::rotate`). Conjugation preserves distance to the goal: the goal set (every face
+one colour) is invariant, and a layer turn conjugated by `g` is again a legal layer turn,
+because `g` preserves the dimensions and so which axes allow quarter turns.
+`Cuboid::canonical` picks the lexicographically smallest conjugate.
+
+`RotationReduced` wraps a `Cuboid` as a `Puzzle` over canonical states:
+`apply = canonical ∘ apply`. Moves found in that quotient are expressed in each canonical
+parent's frame. `RotationReduced::lift` replays them from the real start: at each step it
+picks the real layer turn whose canonical result matches. Solution lengths are unchanged.
+Cuboid heuristics adapt through `ReducedHeuristic<H>`; this is only sound for heuristics
+that are rotation-invariant, such as `CornerHeuristic`, which is a property test.
+
+**Where it pays off (measured).** The quotient collapses states that are conjugates of
+each other. Near a symmetric state such as solved, most states are. BFS levels from
+solved on a 3x3x3 are `[1, 27, 564, 11542]` raw versus `[1, 5, 40, 548]` reduced, about
+21x fewer. Near a generic scrambled start, two different move paths almost never reach
+conjugate states, so a **forward solve from a scramble gains essentially nothing**. It
+also loses the same-axis `can_follow` pruning, because frames change between moves. On
+3x3x3 4-move scrambles, reduced BFS stored about as many states as raw BFS or more. Raw
+search already accepts all 24 solved orientations as goals. The CLI therefore keeps
+forward solves on the raw `Cuboid`.
+
+The reduction is infrastructure for searches that start from the goal:
+- generating pattern databases and other tables, which is where the 24x memory saving
+  lands;
+- exhaustive distance distributions for small cuboids;
+- the backward half of bidirectional search;
+- Korf-style symmetric heuristic lookups, i.e. taking the max of a PDB over the
+  conjugates of a state, for PDBs whose piece subset is not rotation-invariant.
 
 Resulting metrics:
 
@@ -124,7 +161,8 @@ generic PDBs are the next step.
 With the corner heuristic, IDA* handles roughly 7–9 move positions on small cuboids and
 3x3x3. Deeper positions need more information. Planned work:
 
-1. Canonicalise states modulo whole-puzzle rotation, to shrink the space by up to 24x.
+1. ~~Canonicalise states modulo whole-puzzle rotation~~: done (see "Whole-puzzle
+   rotations"). It pays off for goal-rooted searches, not forward solves.
 2. More generic pattern databases over sticker subsets: edges, centres and wings for
    larger cubes, combined with the corner projection by `MaxHeuristic` or additively.
 3. Wide turns and other move metrics (outer block turn metric).
