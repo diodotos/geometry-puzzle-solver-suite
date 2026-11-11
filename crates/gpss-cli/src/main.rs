@@ -666,9 +666,11 @@ fn evaluate_cube3(
     };
     let mut rng = StdRng::seed_from_u64(seed);
     let started = Instant::now();
-    let optimal = IdaStar::new(KorfHeuristic::new());
     let mut labeled = Vec::with_capacity(per_depth * optimal_depth as usize);
+    // Built only when there is something to label: the Korf tables are 87 MB.
+    let optimal = (per_depth > 0 && optimal_depth > 0).then(|| IdaStar::new(KorfHeuristic::new()));
     for len in 1..=optimal_depth as usize {
+        let Some(optimal) = &optimal else { break };
         for _ in 0..per_depth {
             let state = puzzle.apply_all(&puzzle.solved(), &random_scramble(&mut rng, len));
             let sol = optimal
