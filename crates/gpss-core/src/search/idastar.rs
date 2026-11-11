@@ -40,7 +40,7 @@ impl<'a, 'b, P: Puzzle + ?Sized, H: Heuristic<P>> Ctx<'a, 'b, P, H> {
         if f > bound {
             return Ok(Step::Next(f));
         }
-        if h == 0 && self.puzzle.is_solved(state) {
+        if self.puzzle.is_solved(state) {
             return Ok(Step::Found);
         }
         self.budget.expand()?;
