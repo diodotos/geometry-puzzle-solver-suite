@@ -17,7 +17,7 @@ written as a university final project, which is preserved unchanged in
 | Path | What it is |
 |------|------------|
 | `crates/gpss-core/` | Puzzle-agnostic traits (`Puzzle`, `Heuristic`, `Coordinate`, `Solver`) and search (BFS, A*, weighted A*, IDA*) plus pattern databases. **Must never depend on a concrete puzzle.** |
-| `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics; `cube3` = 3x3x3 cubie model, Kociemba coordinates (`cube3::coord`) and the two-phase solver (`cube3::twophase`), Korf's optimal heuristic (`cube3::korf`). |
+| `crates/gpss-puzzles/` | Concrete puzzles. `cube` = shared face-turn notation; `cube2` = 2x2x2 state, coordinates and heuristics; `cube3` = 3x3x3 cubie model, Kociemba coordinates (`cube3::coord`) and the two-phase solver (`cube3::twophase`), Korf's optimal heuristic (`cube3::korf`); `cuboid` = generic `AxBxC` sticker model (any cube or cuboid, single-layer turns). |
 | `crates/gpss-cli/` | The `gpss` binary. Thin: parses arguments, builds puzzle + solver, prints text or JSON. |
 | `conformance/` | Language-agnostic black-box test corpus and harness. Independent Python reference model. |
 | `legacy/cpp/` | The original C++ solver. Do not modify except to keep it building or to drop generated artefacts it regenerates itself. |
@@ -39,6 +39,7 @@ python3 conformance/harness.py --impl legacy-cpp --solver astardual   # builds l
 # Regenerate the corpus (deterministic; ~25 s, pure Python)
 python3 conformance/generate_cube2.py
 python3 conformance/generate_cube3.py   # ~2 s
+python3 conformance/generate_cuboid.py  # <1 s
 python3 conformance/harness.py --impl gpss --solver twophase --corpus conformance/corpus/cube3.jsonl
 
 # CLI

@@ -37,7 +37,7 @@ is now a place to explore two questions:
 |-|-|
 | 2x2x2 | Done. BFS, A*, weighted A*, IDA*; orientation / permutation / dual / perfect pattern databases; 233/233 conformance cases with exact optimal lengths |
 | 3x3x3 | Cubie model and Kociemba two-phase solver (solutions of 20 moves or fewer; median about 0.07 s on random scrambles); 117/117 conformance cases. Korf optimal IDA* (corner + two 6-edge pattern databases, 87 MB, built in about 5 s and cached on disk): optimal up to about 15 moves in under a minute |
-| NxNxN, MxNxK | Planned: puzzle-defined moves, generic sticker model |
+| NxNxN, MxNxK | Generic sticker model (`--puzzle 4x4x4`, `--puzzle 3x3x2`): single-layer turns, half-turn-only axes, exact BFS / IDA* for short scrambles; no heuristics yet |
 | Learned search | Planned: DeepCubeA-style DAVI training (PyTorch -> ONNX), batch weighted A*, shipped 2x2x2 weights, AWS/GCP training launchers |
 
 ## Quick start
@@ -48,6 +48,7 @@ cargo build --release
 ./target/release/gpss solve --scramble "R U R'" --solver bfs --format json
 ./target/release/gpss solve --scramble "R U2 F'" --solver astar --weight 2  # weighted A*, not optimal
 ./target/release/gpss solve --puzzle cube3 --solver twophase --scramble "R U R' U' F2 D L2 B"  # 3x3x3, Kociemba
+./target/release/gpss solve --puzzle 3x3x2 --scramble "U R2 F2 D'"   # generic cuboid (domino)
 ./target/release/gpss scramble --length 20 --seed 1
 ./target/release/gpss pdb --coordinate perfect                             # full 2x2x2 distance table
 ```

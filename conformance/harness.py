@@ -46,6 +46,14 @@ from cube_model import CubeModel  # noqa: E402
 PUZZLE_SIZES = {"cube2": 2, "cube3": 3}
 
 
+def puzzle_dims(name: str):
+    """``cube2``/``cube3`` or ``AxBxC`` (width x depth x height) -> CubeModel argument."""
+    if name in PUZZLE_SIZES:
+        return PUZZLE_SIZES[name]
+    a, b, c = (int(v) for v in name.split("x"))
+    return (a, b, c)
+
+
 @dataclass
 class RunResult:
     returncode: int
@@ -292,7 +300,7 @@ def main() -> int:
 
     outcomes: List[Outcome] = []
     for case in cases:
-        size = PUZZLE_SIZES[case["puzzle"]]
+        size = puzzle_dims(case["puzzle"])
         model = models.setdefault(size, CubeModel(size))
         result = run_with_rusage(impl.command(case, args), impl.cwd, args.timeout)
         impl.parse(result)

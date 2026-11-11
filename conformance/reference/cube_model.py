@@ -1,4 +1,4 @@
-"""Independent reference model of an NxNxN twisty cube at the sticker (facelet) level.
+"""Independent reference model of an NxNxN twisty cube (or AxBxC cuboid) at the sticker level.
 
 This module is deliberately written from first principles (3D geometry), shares no
 code or representation with any solver in this repository, and uses only the Python
@@ -15,6 +15,11 @@ Conventions
   the face's outward normal. ``X'`` is the inverse and ``X2`` the half turn
   (standard WCA outer-block notation).
 * Whole-cube rotations ``x``, ``y``, ``z`` follow R, U and F respectively.
+* ``kX`` (k >= 2) turns only the k-th layer from face X, in X's direction (SiGN
+  single-slice notation); ``2R`` on a 3x3x3 is the middle slice turned like R.
+* Cuboids: ``CubeModel((a, b, c))`` has a layers on the R-L axis, b on F-B and c on U-D
+  (height last, so (3, 3, 2) is the domino). About an axis whose cross-section is not
+  square only half turns exist; the quarter-turn tokens for it are simply not defined.
 """
 
 from __future__ import annotations
@@ -54,47 +59,57 @@ def rotate_cw(v: Vec, axis: Vec) -> Vec:
 
 
 class CubeModel:
-    """Sticker-level model of an NxNxN cube. States are ``bytes`` of face indices."""
+    """Sticker-level model of an NxNxN cube or AxBxC cuboid. States are ``bytes`` of face indices."""
 
-    def __init__(self, n: int):
-        if n < 2:
-            raise ValueError("cube size must be >= 2")
+    def __init__(self, n):
+        a, b, c = (n, n, n) if isinstance(n, int) else n
+        if min(a, b, c) < 2:
+            raise ValueError("every dimension must be >= 2")
         self.n = n
-        coords = range(-(n - 1), n, 2)
+        # half-extent along x (R-L), y (U-D), z (F-B), in units where layers are 2 apart
+        ext = (a - 1, c - 1, b - 1)
+        self.ext = ext
         stickers: List[Tuple[Vec, Vec]] = []
         for face in FACES:
             normal = FACE_NORMALS[face]
             axis = [i for i in range(3) if normal[i] != 0][0]
-            for c in product(coords, repeat=3):
-                if c[axis] == normal[axis] * (n - 1):
-                    stickers.append((c, normal))
+            for pos in product(*(range(-e, e + 1, 2) for e in ext)):
+                if pos[axis] == normal[axis] * ext[axis]:
+                    stickers.append((pos, normal))
         self.stickers = stickers
         self.index = {s: i for i, s in enumerate(stickers)}
         self.solved: bytes = bytes(FACES.index(NORMAL_TO_FACE[nrm]) for _, nrm in stickers)
 
         self.moves: Dict[str, Tuple[int, ...]] = {}
         for face, normal in FACE_NORMALS.items():
-            quarter = self._layer_perm(normal, lambda c, nm=normal: _dot(c, nm) == n - 1)
-            self._register(face, quarter)
+            axis = [i for i in range(3) if normal[i] != 0][0]
+            square = len({ext[i] for i in range(3) if i != axis}) == 1
+            for k in range(1, ext[axis] + 2):
+                level = ext[axis] - 2 * (k - 1)
+                name = face if k == 1 else f"{k}{face}"
+                self._register(name, normal, lambda c, nm=normal, lv=level: _dot(c, nm) == lv, square)
         for rot, face in ROTATION_AXES.items():
             normal = FACE_NORMALS[face]
-            self._register(rot, self._layer_perm(normal, lambda c: True))
+            axis = [i for i in range(3) if normal[i] != 0][0]
+            square = len({ext[i] for i in range(3) if i != axis}) == 1
+            self._register(rot, normal, lambda c: True, square)
 
     # -- construction helpers -------------------------------------------------
-    def _layer_perm(self, axis: Vec, in_layer) -> Tuple[int, ...]:
+    def _layer_perm(self, axis: Vec, in_layer, quarters: int) -> Tuple[int, ...]:
         """Return ``src`` such that new_state[i] = state[src[i]]."""
         src = list(range(len(self.stickers)))
         for i, (c, nrm) in enumerate(self.stickers):
             if in_layer(c):
-                j = self.index[(rotate_cw(c, axis), rotate_cw(nrm, axis))]
-                src[j] = i
+                for _ in range(quarters):
+                    c, nrm = rotate_cw(c, axis), rotate_cw(nrm, axis)
+                src[self.index[(c, nrm)]] = i
         return tuple(src)
 
-    def _register(self, name: str, quarter: Tuple[int, ...]) -> None:
-        perm = quarter
-        for suffix in ("", "2", "'"):
-            self.moves[name + suffix] = perm
-            perm = tuple(perm[i] for i in quarter)
+    def _register(self, name: str, axis: Vec, in_layer, square: bool) -> None:
+        self.moves[name + "2"] = self._layer_perm(axis, in_layer, 2)
+        if square:
+            self.moves[name] = self._layer_perm(axis, in_layer, 1)
+            self.moves[name + "'"] = self._layer_perm(axis, in_layer, 3)
 
     # -- state operations -----------------------------------------------------
     @staticmethod
@@ -127,18 +142,19 @@ class CubeModel:
             nxt = []
             for p in frontier:
                 for r in ("x", "y", "z"):
-                    q = tuple(p[i] for i in self.moves[r])
+                    q = tuple(p[i] for i in self.moves.get(r) or self.moves[r + "2"])
                     if q not in found:
                         found[q] = (found[p] + " " + r).strip()
                         nxt.append(q)
             frontier = nxt
-        assert len(found) == 24
+        assert len(found) in (4, 8, 24)
         return [(name, perm) for perm, name in found.items()]
 
 
 def invert_sequence(tokens: Sequence[str]) -> List[str]:
     out = []
     for tok in reversed(tokens):
-        base, suffix = tok[0], tok[1:]
+        base = tok.rstrip("2'")
+        suffix = tok[len(base):]
         out.append(base + {"": "'", "'": "", "2": "2"}[suffix])
     return out
