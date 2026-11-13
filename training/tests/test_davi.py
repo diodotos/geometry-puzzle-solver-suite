@@ -101,6 +101,14 @@ def test_chunked_sampling(tmp_path):
     train(cfg, source=Recording(), log=lambda s: None)
     assert [c for c, _ in seeds] == [8, 8, 4, 8, 8, 4]
     assert len({s for _, s in seeds}) == 6 and seeds[0][1] == 1_000_003 and seeds[3][1] == 1_000_004
+    assert all(0 <= s < 2**64 for _, s in seeds)
+    # seed 0 (update seeds 0, 1, ...) and a large seed: chunk seeds stay distinct and in u64
+    for seed in (0, 20261113):
+        seeds.clear()
+        cfg = DaviConfig(run_dir=str(tmp_path / f"s{seed}"), updates=3, states_per_update=20, sample_chunk=8,
+                         seed=seed, iters_per_update=1, batch_size=8, hidden1=16, hidden2=8, blocks=1)
+        train(cfg, source=Recording(), log=lambda s: None)
+        assert len({s for _, s in seeds}) == 9 and all(0 <= s < 2**64 for _, s in seeds)
     ck = torch.load(tmp_path / "run" / "checkpoint.pt", weights_only=True)
     assert ck["state"]["samples_seen"] == 40
 

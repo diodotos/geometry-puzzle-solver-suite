@@ -104,6 +104,10 @@ class TrainState:
     history: list = field(default_factory=list)
 
 
+def _chunk_seed(seed: int, chunk: int) -> int:
+    return int(np.random.SeedSequence([seed, chunk]).generate_state(1, np.uint64)[0])
+
+
 @torch.no_grad()
 def bellman_targets(target: Optional[nn.Module], batch: DaviBatch, chunk: int) -> np.ndarray:
     """``y(s) = min_a [1 + J'(A(s,a))]``, ``J'(goal) = 0``, ``y(goal) = 0``.
@@ -227,9 +231,10 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
             xs, ys, t_data = [], [], 0.0
             for c, start in enumerate(range(0, cfg.states_per_update, max(cfg.sample_chunk, 1))):
                 t1 = time.perf_counter()
-                # Chunk 0 keeps the unchunked seed, so single-chunk runs sample as before.
+                # Chunk 0 keeps the unchunked seed, so single-chunk runs sample as before; later
+                # chunks hash (seed, c) to a u64 so they collide with no other update's seeds.
                 batch = source.sample(min(cfg.sample_chunk, cfg.states_per_update - start),
-                                      seed=seed if c == 0 else (seed << 20) + c)
+                                      seed=seed if c == 0 else _chunk_seed(seed, c))
                 t_data += time.perf_counter() - t1
                 ys.append(torch.from_numpy(bellman_targets(target, batch, cfg.target_batch)).to(device))
                 xs.append(torch.from_numpy(batch.states.astype(np.int64)).to(device))
