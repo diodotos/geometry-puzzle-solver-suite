@@ -325,13 +325,13 @@ mod symmetry {
             assert_eq!(t.is_reflection(s), s % 2 == 1, "{s}");
         }
         // 0..16 is the subgroup keeping the U-D axis (U goes to U or D).
-        for s in 0..N_SYM {
-            let ud = matches!(t.faces[s][0], 0 | 3);
+        for (s, faces) in t.faces.iter().enumerate().take(N_SYM) {
+            let ud = matches!(faces[0], 0 | 3);
             assert_eq!(ud, s < N_SYM_D4H, "{s}");
         }
-        for a in 0..N_SYM_D4H {
-            for b in 0..N_SYM_D4H {
-                assert!((t.mult[a][b] as usize) < N_SYM_D4H);
+        for row in t.mult.iter().take(N_SYM_D4H) {
+            for &m in row.iter().take(N_SYM_D4H) {
+                assert!((m as usize) < N_SYM_D4H);
             }
         }
     }
