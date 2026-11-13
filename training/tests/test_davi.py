@@ -88,6 +88,23 @@ def test_fresh_sync_metric_and_held_out_loss(tmp_path):
         train(DaviConfig(run_dir=str(tmp_path / "bad"), sync_metric="val"), source=FakeSource(), log=lambda s: None)
 
 
+def test_chunked_sampling(tmp_path):
+    seeds = []
+
+    class Recording(FakeSource):
+        def sample(self, count, seed):
+            seeds.append((count, seed))
+            return super().sample(count, seed)
+
+    cfg = DaviConfig(run_dir=str(tmp_path / "run"), updates=2, states_per_update=20, sample_chunk=8,
+                     iters_per_update=1, batch_size=8, hidden1=16, hidden2=8, blocks=1)
+    train(cfg, source=Recording(), log=lambda s: None)
+    assert [c for c, _ in seeds] == [8, 8, 4, 8, 8, 4]
+    assert len({s for _, s in seeds}) == 6 and seeds[0][1] == 1_000_003 and seeds[3][1] == 1_000_004
+    ck = torch.load(tmp_path / "run" / "checkpoint.pt", weights_only=True)
+    assert ck["state"]["samples_seen"] == 40
+
+
 def test_init_from_copies_weights_but_starts_fresh(tmp_path):
     small = dict(states_per_update=16, iters_per_update=2, batch_size=8, hidden1=16, hidden2=8, blocks=1)
     train(DaviConfig(run_dir=str(tmp_path / "a"), updates=3, loss_threshold=1e9, **small),

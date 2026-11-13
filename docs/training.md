@@ -111,6 +111,7 @@ Main options (all have defaults; `--help` lists them):
 | `--run-dir` | `runs/<puzzle>` | checkpoint, `log.jsonl`, `config.json` |
 | `--updates` | 400 | number of DAVI updates |
 | `--states-per-update` | 100000 | fresh scrambled states per update |
+| `--sample-chunk` | 1000000 | states per `scramble-data` call and target pass (bounds host memory) |
 | `--iters-per-update` / `--batch-size` | 250 / 1000 | Adam steps per update and minibatch |
 | `--min-scramble` / `--max-scramble` | 1 / 14 (cube2) | scramble depth range |
 | `--loss-threshold` | 0.05 | target-network sync threshold |
@@ -385,6 +386,37 @@ depth; runs given in order are numbered continuously. It needs `matplotlib` (in
 `requirements.txt`); training never imports it.
 
 ![Pilot and check run](benchmarks/cube3-davi-progress.png)
+
+### Paper vs. our runs (reference code, no-cost comparison)
+
+The pilot and check used the paper's algorithm and network but a much smaller *regime*.
+Settings from the authors' reference implementation
+([forestagostinelli/DeepCubeA](https://github.com/forestagostinelli/DeepCubeA), `train.sh`
+and `ctg_approx/avi.py`), several of which are not in the paper's text:
+
+| | reference `train.sh` (cube3) | our check run |
+|---|---|---|
+| states per target computation | 50M (`--states_per_update`) | 1M |
+| SGD steps per target computation | 5,000 (one epoch, batch 10,000) | 100 |
+| sync rule | last training loss < 0.06 (`--loss_thresh`), never forced | forced every 3 updates (300 steps); held-out loss stayed ~0.165 |
+| total steps | 1M, then a manual target copy and on to 1.2M | ~51k (pilot + check, ~4%) |
+| optimiser | Adam, re-created every update; LR 1e-3 x 0.9999993^step | Adam, kept across updates; LR 3e-4 |
+| scramble depth | uniform 0-30 | uniform 1-30 |
+
+The reference code only reuses the network as `J'` once it has fitted the current
+targets. Our forced syncs every 300 steps fed an unfitted network's errors into the next
+targets. The check's log shows why waiting a few updates did not help: the held-out loss
+was 0.170 / 0.167 / 0.167 in the first / second / third update after a sync, so 100-200
+more steps against the same `J'` barely move it. The `min`-over-18-children bias in the
+check-run note above is the mechanism this produces, not a separate cause.
+
+The `cube3` preset therefore moves towards the reference regime as far as one L4 allows:
+10M states and 1,000 steps (one epoch) per update, generated in 1M-state chunks
+(`--sample-chunk`), a sync only when the held-out loss is below 0.06, and a forced sync
+after 10 updates (10,000 steps). One update is ~10 minutes on an L4 (~9 min of targets),
+so the paper's 1.2M steps would be ~1,200 updates, ~200 L4-hours (extrapolated). The next
+~$2 check measures whether the held-out loss reaches 0.06 within 10,000 steps against a
+fixed `J'`.
 
 ## Deviations from the paper
 

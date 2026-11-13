@@ -50,6 +50,9 @@ class DaviConfig:
     max_scramble: int = 14
     updates: int = 400
     states_per_update: int = 100_000
+    # States per `gpss scramble-data` call / target pass, so a large update (the reference
+    # code's 50M) never holds all children in host memory at once.
+    sample_chunk: int = 1_000_000
     iters_per_update: int = 250
     batch_size: int = 1000
     lr: float = 1e-3
@@ -78,12 +81,13 @@ PRESETS = {
     "cube2": dict(max_scramble=14),
     # DeepCubeA's 3x3x3 setup: scrambles up to 30, a (5000, 1000) MLP with four residual
     # blocks, batch 10,000 (Agostinelli et al. 2019, Methods).
-    # After the L4 pilot (docs/training.md, "Tuning after the pilot"): one epoch per update as in
-    # the reference code (the pilot's 2.5 memorised the states), the sync rule on held-out loss,
-    # and a forced sync every 3 updates (waiting 10 did not lower the loss).
+    # Closer to the reference code's regime (docs/training.md, "Paper vs. our runs"): one epoch
+    # over 10M fresh states (1,000 steps) per update, and a sync only once the held-out loss
+    # is below 0.06 (the reference train.sh), forced after 10 updates (10,000 steps; the
+    # reference never forces). The check run's 300 steps per sync never fitted its targets.
     "cube3": dict(max_scramble=30, hidden1=5000, hidden2=1000, blocks=4, batch_size=10_000,
-                  states_per_update=1_000_000, iters_per_update=100, sync_metric="fresh",
-                  max_updates_per_sync=3, run_dir="runs/cube3"),
+                  states_per_update=10_000_000, iters_per_update=1000, sync_metric="fresh",
+                  loss_threshold=0.06, max_updates_per_sync=10, run_dir="runs/cube3"),
 }
 
 
@@ -219,10 +223,19 @@ def train(cfg: DaviConfig, resume: bool = False, log: Callable[[str], None] = pr
     with open(run_dir / "log.jsonl", "a") as logf:
         while st.update < cfg.updates:
             t0 = time.perf_counter()
-            batch = source.sample(cfg.states_per_update, seed=cfg.seed * 1_000_003 + st.sample_offset + st.update)
-            t_data = time.perf_counter() - t0
-            y = torch.from_numpy(bellman_targets(target, batch, cfg.target_batch)).to(device)
-            x = torch.from_numpy(batch.states.astype(np.int64)).to(device)
+            seed = cfg.seed * 1_000_003 + st.sample_offset + st.update
+            xs, ys, t_data = [], [], 0.0
+            for c, start in enumerate(range(0, cfg.states_per_update, max(cfg.sample_chunk, 1))):
+                t1 = time.perf_counter()
+                # Chunk 0 keeps the unchunked seed, so single-chunk runs sample as before.
+                batch = source.sample(min(cfg.sample_chunk, cfg.states_per_update - start),
+                                      seed=seed if c == 0 else (seed << 20) + c)
+                t_data += time.perf_counter() - t1
+                ys.append(torch.from_numpy(bellman_targets(target, batch, cfg.target_batch)).to(device))
+                xs.append(torch.from_numpy(batch.states.astype(np.int64)).to(device))
+                del batch
+            x, y = torch.cat(xs), torch.cat(ys)
+            del xs, ys
             t_target = time.perf_counter() - t0 - t_data
             fresh_loss = held_out_loss(model, x[:cfg.fresh_states], y[:cfg.fresh_states], cfg.target_batch)
 
